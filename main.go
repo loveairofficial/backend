@@ -85,7 +85,7 @@ func init() {
 		sLogger.Log.Errorln(err)
 	}
 
-	redis_uri, redis_user, redis_pass := os.Getenv("REDIS_URI"), os.Getenv("REDIS_URI"), os.Getenv("REDIS_URI")
+	redis_uri, redis_user, redis_pass := os.Getenv("REDIS_URI"), os.Getenv("REDIS_USER"), os.Getenv("REDIS_PASS")
 	// If SECRET is not set, assign an empty string
 	if redis_uri == "" {
 		neo4j_uri = "localhost:6379"
