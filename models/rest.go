@@ -11,6 +11,7 @@ type User struct {
 	FirstName             string    `json:"firstName" bson:"first_name"`
 	LastName              string    `json:"lastName" bson:"last_name"`
 	Email                 string    `json:"email" bson:"email"`
+	Provider              string    `json:"provider" bson:"provider"` //Authentication provider eg. loveair, google or apple
 	Phone                 string    `json:"phone" bson:"phone"`
 	Password              string    `json:"password" bson:"password"`
 	IsOnboarded           bool      `json:"isOnboarded" bson:"is_onboarded"`

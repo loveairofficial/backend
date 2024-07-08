@@ -67,6 +67,8 @@ func (s *Socket) delegate(receiveCh chan models.Incomming, sendCh chan *models.O
 				}
 			case "init-match-call":
 				s.initMatchCall(&pl.Data, sendCh)
+			case "offline-meet-request":
+				s.OfflineMeetRequest(&pl.Data)
 			case "reinit-match-call":
 				s.reInitMatchCall(&pl.Data, sendCh)
 			case "meet-request-status-update":
@@ -201,6 +203,27 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 	}
 }
 
+func (s *Socket) OfflineMeetRequest(pl *models.Data) {
+
+	// Init a new meet request
+	mr := new(models.MeetRequest)
+
+	mr.ID = s.generateID()
+	mr.Timestamp = time.Now().UTC()
+	mr.Compliment = pl.Compliment
+	mr.Rose = pl.Rose
+	mr.SenderID = pl.SenderID
+	mr.RecipientID = pl.RecipientID
+
+	// store requested-to-meet relationship
+	err := s.mbase.AddRequestedToMeetRelationship(mr)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
+
+}
+
 func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 	callID := s.generateID()
 
@@ -308,6 +331,57 @@ func (s *Socket) matchStatusUpdate(pl *models.Data) {
 		return
 	}
 
+	// Once pass is sent here regardless of history resolve it here.
+	if pl.Status == "pass" {
+		s.sLogger.Log.Info("its a pass")
+		// emit its a pass
+		og := &models.Outgoing{
+			OutPayload: models.Payload{
+				Tag: "match-status-update",
+				Data: models.Data{
+					Status: "pass",
+				},
+			},
+		}
+
+		// var recipient string
+		// if pl.SenderID == pl.UserID {
+		// 	recipient = pl.RecipientID
+		// } else {
+		// 	recipient = pl.SenderID
+		// }
+
+		// Asynchronously check if client is connected to this instance, then send payload to client.
+		ackChan1 := make(chan bool)
+		go s.ClientConnectedToThisInstance(pl.SenderID, og, ackChan1)
+		if ok := <-ackChan1; !ok {
+			//~handle checking and sending to other instance if user exist there.
+			s.sLogger.Log.Infoln("user is not connected on this instance or offline")
+		}
+
+		ackChan2 := make(chan bool)
+		go s.ClientConnectedToThisInstance(pl.RecipientID, og, ackChan2)
+		if ok := <-ackChan2; !ok {
+			//~handle checking and sending to other instance if user exist there.
+			s.sLogger.Log.Infoln("user is not connected on this instance or offline")
+		}
+
+		// add pass relationshp
+		err := s.mbase.AddPassRelationship(time.Now().UTC(), pl.SenderID, pl.RecipientID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+		//! detete mr from cache
+		err = s.cbaseIf.DeleteCachedMeetRequest(pl.CallID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+
+		return
+	}
+
 	if pl.SenderID == pl.UserID {
 		//update senderstatus
 		err := s.cbaseIf.UpdateMeetRequest(pl.CallID, "sender", pl.Status)
@@ -360,6 +434,13 @@ func (s *Socket) matchStatusUpdate(pl *models.Data) {
 				s.sLogger.Log.Infoln("user is not connected on this instance")
 			}
 
+			//! detete mr from cache
+			err = s.cbaseIf.DeleteCachedMeetRequest(pl.CallID)
+			if err != nil {
+				s.sLogger.Log.Errorln(err)
+				return
+			}
+
 			// add match relationship
 			err = s.mbase.AddMatchRelationship(time.Now().UTC(), mr.SenderID, mr.RecipientID)
 			if err != nil {
@@ -379,39 +460,6 @@ func (s *Socket) matchStatusUpdate(pl *models.Data) {
 			err = s.dbase.AddChat(chat)
 			if err != nil {
 				s.sLogger.Log.Errorln(err)
-			}
-		} else {
-			s.sLogger.Log.Info("its a pass")
-			// emit its a pass
-			og := &models.Outgoing{
-				OutPayload: models.Payload{
-					Tag: "match-status-update",
-					Data: models.Data{
-						Status: "pass",
-					},
-				},
-			}
-
-			// Asynchronously check if client is connected to this instance, then send payload to client.
-			ackChan1 := make(chan bool)
-			go s.ClientConnectedToThisInstance(pl.RecipientID, og, ackChan1)
-			if ok := <-ackChan1; !ok {
-				//~handle checking and sending to other instance if user exist there.
-				s.sLogger.Log.Infoln("user is not connected on this instance")
-			}
-
-			ackChan2 := make(chan bool)
-			go s.ClientConnectedToThisInstance(pl.SenderID, og, ackChan2)
-			if ok := <-ackChan2; !ok {
-				//~handle checking and sending to other instance if user exist there.
-				s.sLogger.Log.Infoln("user is not connected on this instance")
-			}
-
-			// add pass relationshp
-			err = s.mbase.AddPassRelationship(time.Now().UTC(), mr.SenderID, mr.RecipientID)
-			if err != nil {
-				s.sLogger.Log.Errorln(err)
-				return
 			}
 		}
 	}
@@ -542,3 +590,38 @@ func (s *Socket) report(pl *models.Data) {
 		return
 	}
 }
+
+// else {
+// 	s.sLogger.Log.Info("its a pass")
+// 	// emit its a pass
+// 	og := &models.Outgoing{
+// 		OutPayload: models.Payload{
+// 			Tag: "match-status-update",
+// 			Data: models.Data{
+// 				Status: "pass",
+// 			},
+// 		},
+// 	}
+
+// 	// Asynchronously check if client is connected to this instance, then send payload to client.
+// 	ackChan1 := make(chan bool)
+// 	go s.ClientConnectedToThisInstance(pl.RecipientID, og, ackChan1)
+// 	if ok := <-ackChan1; !ok {
+// 		//~handle checking and sending to other instance if user exist there.
+// 		s.sLogger.Log.Infoln("user is not connected on this instance")
+// 	}
+
+// 	ackChan2 := make(chan bool)
+// 	go s.ClientConnectedToThisInstance(pl.SenderID, og, ackChan2)
+// 	if ok := <-ackChan2; !ok {
+// 		//~handle checking and sending to other instance if user exist there.
+// 		s.sLogger.Log.Infoln("user is not connected on this instance")
+// 	}
+
+// 	// add pass relationshp
+// 	err = s.mbase.AddPassRelationship(time.Now().UTC(), mr.SenderID, mr.RecipientID)
+// 	if err != nil {
+// 		s.sLogger.Log.Errorln(err)
+// 		return
+// 	}
+// }

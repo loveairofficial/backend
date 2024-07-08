@@ -6,6 +6,7 @@ type Interface interface {
 	CacheMeetRequest(*models.MeetRequest) error
 	RetrieveMeetRequest(string) (*models.MeetRequest, error)
 	UpdateMeetRequest(string, string, string) error
+	DeleteCachedMeetRequest(id string) error
 
 	ChatExist(string) (bool, error)
 	CacheMessage(models.Message) error

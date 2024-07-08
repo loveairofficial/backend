@@ -35,3 +35,12 @@ func (r *Redis) UpdateMeetRequest(callID, who, status string) error {
 		return err
 	}
 }
+
+func (r *Redis) DeleteCachedMeetRequest(id string) error {
+	_, err := r.rhj.JSONDel(id, ".")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

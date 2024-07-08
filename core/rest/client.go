@@ -162,6 +162,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	//~ Generate jwt stream token
 	//! do not hardcode credentials!!!
+	//! add token to env
 	client, err := stream.NewClient("vj79fb5bcmwt", "w82x6tnpjwjumdjqraj267vhskpgs34ptp8ydue8jzfg2rwye7dxab27f8jkgcub")
 	if err != nil {
 		http.Error(w, "Error creating Stream client", http.StatusInternalServerError)
