@@ -125,6 +125,7 @@ type Report struct {
 	ID          string    `json:"id" bson:"id"`
 	Type        string    `json:"type" bson:"type,"`
 	Status      string    `json:"status" bson:"status,"` // eg. pending, resolved
+	Context     string    `json:"context" bson:"context"`
 	SenderID    string    `json:"senderid" bson:"sender_id,"`
 	RecipientID string    `json:"recipientid," bson:"recipient_id"`
 	Timestamp   time.Time `json:"timestamp" bson:"timestamp,"`

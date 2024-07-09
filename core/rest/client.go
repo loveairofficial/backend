@@ -553,7 +553,14 @@ func (re *Rest) GetMeetRequests(w http.ResponseWriter, r *http.Request) {
 				MeetRequests: HydratedMrs,
 			},
 		})
+	} else {
+		re.writeJSON(w, Response{
+			Status:     "200",
+			StatusCode: http.StatusOK,
+			Message:    "No meet requests",
+		})
 	}
+
 }
 
 func getRecipientIDs(chats []models.Chat, userID string) []string {

@@ -571,6 +571,7 @@ func (m *MongoDB) AddReport(report models.Report) error {
 		"id":           report.ID,
 		"type":         report.Type,
 		"status":       report.Status,
+		"context":      report.Context,
 		"sender_id":    report.SenderID,
 		"recipient_id": report.RecipientID,
 		"timestamp":    report.Timestamp,
