@@ -514,6 +514,12 @@ func (re *Rest) GetPotentialMatches(w http.ResponseWriter, r *http.Request) {
 		})
 
 		//TODO: Cache this users
+	} else {
+		re.writeJSON(w, Response{
+			Status:     "200",
+			StatusCode: http.StatusOK,
+			Message:    "No potential matches",
+		})
 	}
 }
 
