@@ -2,13 +2,17 @@ package rest
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"io"
 	"loveair/base/cache"
 	"loveair/base/data"
 	"loveair/base/meta"
+	"loveair/email"
 	"loveair/log"
 	"loveair/models"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -76,15 +80,17 @@ type Rest struct {
 	dbase   data.Interface
 	mbase   meta.Interface
 	cbaseIf cache.Interface
+	emailIf email.Interface
 	sLogger log.SLoger
 }
 
-func InitRest(secret string, dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, sLogger log.SLoger) *Rest {
+func InitRest(secret string, dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, emailIf email.Interface, sLogger log.SLoger) *Rest {
 	return &Rest{
 		secret,
 		dbase,
 		mbase,
 		cbaseIf,
+		emailIf,
 		sLogger,
 	}
 }
@@ -152,4 +158,20 @@ func (re *Rest) generateRefreshTkn(duration time.Duration, email, did string) (s
 		return "", "", err
 	}
 	return tknString, did, nil
+}
+
+func GenerateRandomPin() (string, error) {
+	// The maximum value for a 4-digit PIN is 9999
+	max := big.NewInt(10000) // The upper limit is exclusive, so use 10000
+
+	// Generate a random number between 0 and 9999
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+
+	// Convert the number to a 4-digit string with leading zeros if necessary
+	pin := fmt.Sprintf("%04d", n.Int64())
+
+	return pin, nil
 }

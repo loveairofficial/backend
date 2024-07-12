@@ -3,9 +3,11 @@ package rest
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"loveair/models"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,11 +39,61 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// generate 4 digit pin
+	pin, err := GenerateRandomPin()
+	if err != nil {
+		fmt.Println("Error generating PIN:", err)
+		return
+	}
+
+	// cache it on redis
+	err = re.cbaseIf.SetPin(email, pin, time.Minute*10)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// send pin to client via email
+	resStatus, err := re.emailIf.SendEmailVerificationPin(email, pin)
+	if err != nil || resStatus != 202 {
+		re.sLogger.Log.Errorln(err)
+	}
+
 	//sign-up user
 	re.writeJSON(w, Response{
 		Status:     "200",
 		StatusCode: http.StatusOK,
 		Message:    "Sign-Up",
+	})
+}
+
+func (re *Rest) VerifyEmailVerificationPin(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	pin := r.URL.Query().Get("pin")
+
+	//retrieve pin from cache
+	res, err := re.cbaseIf.GetPin(email)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// validate pin
+	if res != pin {
+		w.WriteHeader(http.StatusExpectationFailed)
+		return
+	} else {
+		//delete cache email & pin
+		err = re.cbaseIf.DeletePin(email)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+		}
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Pin verification successfull",
 	})
 }
 
@@ -566,7 +618,6 @@ func (re *Rest) GetMeetRequests(w http.ResponseWriter, r *http.Request) {
 			Message:    "No meet requests",
 		})
 	}
-
 }
 
 func getRecipientIDs(chats []models.Chat, userID string) []string {
@@ -841,8 +892,40 @@ func (re *Rest) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 
 // uniqueValues returns the values that are not common between two slices of strings
 
-/**
-Step1: check if email exist
-step2: if it exist, let frontend know so user can add password and login/authenticate.
-step3: if it doesnt send user verification code and start account signup process
-**/
+func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
+	// Get the bearer token from environment variable
+	expectedToken := os.Getenv("GLASSFY_WEBHOOK_AUTH_BEARER")
+
+	// Extract the token from the Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		http.Error(w, "missing or invalid Authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+
+	// Verify the token
+	if token != expectedToken {
+		http.Error(w, "invalid token", http.StatusUnauthorized)
+		return
+	}
+
+	var payload models.WebhookPayload
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "can't read body", http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		http.Error(w, "can't parse JSON", http.StatusBadRequest)
+		return
+	}
+
+	// Handle the webhook payload
+	fmt.Printf("Received webhook: %+v\n", payload)
+
+	w.WriteHeader(http.StatusOK)
+}

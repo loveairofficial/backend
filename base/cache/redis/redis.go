@@ -11,60 +11,49 @@ import (
 )
 
 type Redis struct {
-	client *redis.Client
-	rhj    *rejson.Handler
+	remoteClient *redis.Client
+	remoteRJH    *rejson.Handler
 
-	clientOne *redis.Client
-	rhjOne    *rejson.Handler
-
-	clientTwo *redis.Client
-	rhjTwo    *rejson.Handler
+	localClient0 *redis.Client
+	localClient1 *redis.Client
 }
 
 func InitRedisConnection(cacheConfig map[string]string) cache.Interface {
-	// Cache meet request data
-	client := redis.NewClient(&redis.Options{
+	// Cache meet request, chat conversation &  user instance data (3)
+	remoteClient := redis.NewClient(&redis.Options{
 		Network:    "tcp",
-		Addr:       cacheConfig["url"],
-		Username:   cacheConfig["username"], // no username set
-		Password:   cacheConfig["password"], // no password set
-		DB:         0,                       // Redis has 16 logical db's in an instance.
+		Addr:       cacheConfig["remote_url"],
+		Username:   cacheConfig["remote_username"], // no username set
+		Password:   cacheConfig["remote_password"], // no password set
+		DB:         0,                              // Redis has 16 logical db's in an instance.
 		MaxRetries: 9000})
 
-	rhj := rejson.NewReJSONHandler()
-	rhj.SetGoRedisClientWithContext(context.Background(), client)
+	remoteRJH := rejson.NewReJSONHandler()
+	remoteRJH.SetGoRedisClientWithContext(context.Background(), remoteClient)
 
-	// Cache client data
-	clientOne := redis.NewClient(&redis.Options{
+	// Cache potential match user data.
+	localClient0 := redis.NewClient(&redis.Options{
 		Network:    "tcp",
-		Addr:       cacheConfig["url"],
-		Username:   cacheConfig["username"], // no username set
-		Password:   cacheConfig["password"], // no password set
-		DB:         1,                       // Redis has 16 logical db's in an instance.
+		Addr:       cacheConfig["local_url"],
+		Username:   cacheConfig["local_username"], // no username set
+		Password:   cacheConfig["local_password"], // no password set
+		DB:         1,                             // Redis has 16 logical db's in an instance.
 		MaxRetries: 9000})
 
-	rhjOne := rejson.NewReJSONHandler()
-	rhjOne.SetGoRedisClientWithContext(context.Background(), clientOne)
-
-	// Cache chat data
-	clientTwo := redis.NewClient(&redis.Options{
+	// Cache email pin data.
+	localClient1 := redis.NewClient(&redis.Options{
 		Network:    "tcp",
-		Addr:       cacheConfig["url"],
-		Username:   cacheConfig["username"], // no username set
-		Password:   cacheConfig["password"], // no password set
-		DB:         2,                       // Redis has 16 logical db's in an instance.
+		Addr:       cacheConfig["local_url"],
+		Username:   cacheConfig["local_username"], // no username set
+		Password:   cacheConfig["local_password"], // no password set
+		DB:         2,                             // Redis has 16 logical db's in an instance.
 		MaxRetries: 9000})
-
-	rhjTwo := rejson.NewReJSONHandler()
-	rhjTwo.SetGoRedisClientWithContext(context.Background(), clientTwo)
 
 	return &Redis{
-		client,
-		rhj,
-		clientOne,
-		rhjOne,
-		clientTwo,
-		rhjTwo,
+		remoteClient,
+		remoteRJH,
+		localClient0,
+		localClient1,
 	}
 }
 

@@ -9,7 +9,7 @@ func (r *Redis) ChatExist(chatID string) (bool, error) {
 	ctx, cancel := getContext()
 	defer cancel()
 
-	exists, err := r.clientTwo.Exists(ctx, chatID).Result()
+	exists, err := r.remoteClient.Exists(ctx, chatID).Result()
 	if err != nil {
 		return false, err
 	}
@@ -22,7 +22,7 @@ func (r *Redis) ChatExist(chatID string) (bool, error) {
 }
 
 func (r *Redis) CacheMessage(msg models.Message) error {
-	_, err := r.rhjTwo.JSONArrAppend(msg.ChatID, ".messages", msg)
+	_, err := r.remoteRJH.JSONArrAppend(msg.ChatID, ".messages", msg)
 	return err
 }
 
@@ -30,7 +30,7 @@ func (r *Redis) CacheMessage(msg models.Message) error {
 func (r *Redis) UpdateMessageStatus(chatID string, messageIDs []string, status string) error {
 	for _, messageID := range messageIDs {
 		path := fmt.Sprintf(".messages[?(@.id=='%s')].status", messageID)
-		_, err := r.rhjTwo.JSONSet(chatID, path, status)
+		_, err := r.remoteRJH.JSONSet(chatID, path, status)
 
 		if err != nil {
 			return fmt.Errorf("failed to update message status for ID %s: %v", messageID, err)
@@ -42,14 +42,14 @@ func (r *Redis) UpdateMessageStatus(chatID string, messageIDs []string, status s
 
 func (r *Redis) CacheChat(cc models.ChatCache) error {
 	// _, err := r.rhjTwo.JSONArrAppend(msg.ChatID, ".messages", msg)
-	_, err := r.rhjTwo.JSONSet(cc.ChatID, ".", cc)
+	_, err := r.remoteRJH.JSONSet(cc.ChatID, ".", cc)
 	return err
 }
 
 func (r *Redis) GetCachedChat(id string) (*models.ChatCache, error) {
 	cc := new(models.ChatCache)
 
-	res, err := r.rhjTwo.JSONGet(id, ".")
+	res, err := r.remoteRJH.JSONGet(id, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (r *Redis) GetCachedChat(id string) (*models.ChatCache, error) {
 }
 
 func (r *Redis) DeleteCachedChat(id string) error {
-	_, err := r.rhjTwo.JSONDel(id, ".")
+	_, err := r.remoteRJH.JSONDel(id, ".")
 	if err != nil {
 		return err
 	}

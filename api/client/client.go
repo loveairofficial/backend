@@ -11,6 +11,7 @@ import (
 func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.Socket, serviceLogger log.SLoger) {
 	// client.Methods("POST").Path("/auth").HandlerFunc(rest.Authenticate)
 	client.Methods("GET").Path("/verify-email").HandlerFunc(rest.VerifyEmail)
+	client.Methods("GET").Path("/verify-email-verification-pin").HandlerFunc(rest.VerifyEmailVerificationPin)
 	client.Methods("POST").Path("/sign-up").HandlerFunc(rest.SignUp)
 	client.Methods("POST").Path("/sign-in").HandlerFunc(rest.SignIn)
 	client.Methods("GET").Path("/sign-out").HandlerFunc(rest.SignOut)
@@ -108,4 +109,17 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	profileMutate.Methods("PUT").Path("/").HandlerFunc(rest.UpdateLocation)
 	profileMutate.Methods("PUT").Path("/updateProfile").HandlerFunc(rest.UpdateProfile)
 	profileMutate.Methods("PUT").Path("/update-account").HandlerFunc(rest.UpdateAccount)
+
+	// ~ Subscription
+	subscription := client.PathPrefix("/subscription").Subrouter()
+	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+
+	//Query
+	// profileQuery := subscription.PathPrefix("/query").Subrouter()
+
+	//Mutate
+	subscriptionMutate := subscription.PathPrefix("/mutate").Subrouter()
+	subscriptionMutate.Methods("POST").Path("/glassfy-webhook").HandlerFunc(rest.HandleGlassfyWebhook)
 }
+
+// https://www.loveair.co/clr/subscription/mutate/glassfy-webhook

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"loveair/api"
+	"loveair/email"
 	"loveair/log"
 	"os"
 	"runtime"
@@ -16,6 +17,7 @@ import (
 	mbasegw "loveair/base/meta/gateway"
 
 	"loveair/core/websocket/router"
+	emailgw "loveair/email/gateway"
 	hookgw "loveair/log/hook/gateway"
 )
 
@@ -24,6 +26,7 @@ var (
 	dbaseIf data.Interface
 	mbaseIf meta.Interface
 	cbaseIf cache.Interface
+	emailIf email.Interface
 	sRouter *router.Router
 )
 
@@ -85,18 +88,38 @@ func init() {
 		sLogger.Log.Errorln(err)
 	}
 
-	redis_uri, redis_user, redis_pass := os.Getenv("REDIS_URI"), os.Getenv("REDIS_USER"), os.Getenv("REDIS_PASS")
-	// If SECRET is not set, assign an empty string
-	if redis_uri == "" {
-		neo4j_uri = "localhost:6379"
+	redis_remote_uri, redis_remote_user, redis_remote_pass := os.Getenv("REDIS_REMOTE_URI"), os.Getenv("REDIS_REMOTE_USER"), os.Getenv("REDIS_REMOTE_PASS")
+	redis_local_uri, redis_local_user, redis_local_pass := os.Getenv("REDIS_LOCAL_URI"), os.Getenv("REDIS_LOCAL_USER"), os.Getenv("REDIS_LOCAL_PASS")
+
+	if redis_remote_uri == "" {
+		redis_remote_uri = "localhost:6379"
+	}
+
+	if redis_local_uri == "" {
+		redis_local_uri = "localhost:6379"
 	}
 
 	//~ Init Cachebase (Redis)
 	cbaseIf = cbasegw.ConnectCache(cbasegw.CBTYPE("redis"), map[string]string{
-		"url":      redis_uri,
-		"username": redis_user,
-		"password": redis_pass,
+		"remote_url":      redis_remote_uri,
+		"remote_username": redis_remote_user,
+		"remote_password": redis_remote_pass,
+
+		"local_url":      redis_local_uri,
+		"local_username": redis_local_user,
+		"local_password": redis_local_pass,
 	})
+
+	mailersend_api_key := os.Getenv("MAILERSEND_API_KEY")
+	if mailersend_api_key == "" {
+		// mailersend_api_key = "mlsn.cdf4df1d2bcdcf1d907be7e44d76e741908e922fbe2979dcdbdf6f9af448b0dc"
+		mailersend_api_key = "mlsn.5380401b24a6ab7fb13a3ddc499a4bcf77e9c9f2d5d2cf6e6a35fb902aebaab0"
+	}
+
+	// Init Email
+	emailIf = emailgw.EConnect(emailgw.ETYPE("mailersend"), map[string]string{
+		"API_KEY": mailersend_api_key},
+	)
 
 	//! turn on when ready.
 	// Init Router
@@ -110,7 +133,6 @@ func init() {
 	// 	go sRouter.Daemon()
 	// 	go sRouter.StartIO()
 	// }
-
 }
 
 func main() {
@@ -162,7 +184,7 @@ func main() {
 		mbaseIf,
 		cbaseIf,
 		sRouter,
-		// emailIf,
+		emailIf,
 		// mediabaseIf,
 		sLogger,
 	))

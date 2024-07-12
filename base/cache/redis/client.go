@@ -6,7 +6,7 @@ func (r *Redis) ClientExist(clientID string) (bool, error) {
 	ctx, cancel := getContext()
 	defer cancel()
 
-	exists, err := r.clientOne.Exists(ctx, clientID).Result()
+	exists, err := r.remoteClient.Exists(ctx, clientID).Result()
 	if err != nil {
 		return false, err
 	}
@@ -19,25 +19,25 @@ func (r *Redis) ClientExist(clientID string) (bool, error) {
 }
 
 func (r *Redis) AddClient(clientID string, cc models.ClientCache) error {
-	_, err := r.rhjOne.JSONSet(clientID, ".", cc)
+	_, err := r.remoteRJH.JSONSet(clientID, ".", cc)
 	return err
 }
 
 func (r *Redis) RemoveClient(clientID string) error {
-	_, err := r.rhjOne.JSONDel(clientID, ".")
+	_, err := r.remoteRJH.JSONDel(clientID, ".")
 
 	return err
 }
 
 func (r *Redis) UpdateClientCachedChatSlice(clientID, chatID string) error {
-	_, err := r.rhjOne.JSONArrAppend(clientID, ".cachedChat", chatID)
+	_, err := r.remoteRJH.JSONArrAppend(clientID, ".cachedChat", chatID)
 	return err
 }
 
 func (r *Redis) GetClientCachedChatSlice(clientID string) (*[]string, error) {
 	cc := new([]string)
 
-	res, err := r.rhjOne.JSONGet(clientID, ".cachedChat")
+	res, err := r.remoteRJH.JSONGet(clientID, ".cachedChat")
 
 	if err != nil {
 		return nil, err
