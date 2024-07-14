@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type User struct {
 	ID                    string    `json:"id" bson:"id"`
@@ -17,6 +21,7 @@ type User struct {
 	IsOnboarded           bool      `json:"isOnboarded" bson:"is_onboarded"`
 	StageID               int       `json:"stageID" bson:"stage_ID"`
 	Subscription          string    `json:"subscription,omitempty" bson:"subscription"`
+	FreeDailyTrialCount   int       `json:"free_daily_trial_count,omitempty" bson:"free_daily_trial_count"`
 	Gender                string    `json:"gender,omitempty" bson:"gender"`
 	DOB                   time.Time `json:"dob,omitempty" bson:"dob"`
 	RelationshipIntention string    `json:"relationshipIntention,omitempty" bson:"relationship_intention"`
@@ -58,15 +63,12 @@ type MetaUser struct{}
 type Device struct {
 	// Device ID is the unique identifier for the device assigned the token.
 	DeviceID string `json:"device_id,omitempty" bson:"device_id"`
-
-	Device   string `json:"device,omitempty" bson:"device"`
-	Platform string `json:"platform,omitempty" bson:"platform"`
+	PushTkn  string `json:"push_tkn" bson:"push_tkn"`
 	// OS name (Eg: “Windows”)
-	OSName string `json:"os_name,omitempty" bson:"os_name"`
-	// OS version (e.g. "Android", "iOS"))
-	OSVersion string `json:"os_version,omitempty" bson:"os_version"`
-	//Browser name (Eg: “Chrome”)
-	BrowserName string `json:"browser_name,omitempty" bson:"browser_name"`
+	OSName     string `json:"os_name,omitempty" bson:"os_name"`
+	Brand      string `json:"brand,omitempty" bson:"brand"`
+	DeviceType string `json:"device_type,omitempty" bson:"device_type"`
+	ModelName  string `json:"model_name,omitempty" bson:"model_name"`
 }
 
 type Preference struct {
@@ -140,55 +142,76 @@ type Feedback struct {
 	Timestamp   time.Time `json:"timestamp" bson:"timestamp,"`
 }
 
+// type WebhookPayload struct {
+// 	AdjustID                 string  `json:"adjustid"`
+// 	AID                      string  `json:"aid"`
+// 	AppVersion               string  `json:"app_version"`
+// 	AppID                    string  `json:"appid"`
+// 	AppsFlyerID              string  `json:"appsflyerid"`
+// 	ASID                     string  `json:"asid"`
+// 	AutoRenewProductID       string  `json:"auto_renew_product_id"`
+// 	AutoRenewStatus          bool    `json:"auto_renew_status"`
+// 	BundleVersion            string  `json:"bundle_version"`
+// 	CountryCode              string  `json:"country_code"`
+// 	CurrencyCode             string  `json:"currency_code"`
+// 	CustomID                 string  `json:"customid"`
+// 	DateMS                   int64   `json:"date_ms"`
+// 	Device                   string  `json:"device"`
+// 	Environment              string  `json:"environment"`
+// 	Estimated                int     `json:"estimated"`
+// 	EventDate                int64   `json:"event_date"`
+// 	ExpirationIntent         string  `json:"expiration_intent"`
+// 	ExpireDateMS             int64   `json:"expire_date_ms"`
+// 	GAID                     string  `json:"gaid"`
+// 	GracePeriodExpiresDateMS int64   `json:"grace_period_expires_date_ms"`
+// 	GroupIdentifier          string  `json:"group_identifier"`
+// 	ID                       string  `json:"id"`
+// 	IDFA                     string  `json:"idfa"`
+// 	IDFV                     string  `json:"idfv"`
+// 	IP                       string  `json:"ip"`
+// 	IsInBillingRetryPeriod   bool    `json:"is_in_billing_retry_period"`
+// 	LicenseCode              string  `json:"licensecode"`
+// 	OfferCodeRefName         string  `json:"offer_code_ref_name"`
+// 	OfferingID               string  `json:"offeringid"`
+// 	OriginalPurchaseDateMS   int64   `json:"original_purchase_date_ms"`
+// 	OriginalTransactionID    string  `json:"original_transaction_id"`
+// 	PackageName              string  `json:"packagename"`
+// 	Price                    float64 `json:"price"`
+// 	PriceConsentStatus       string  `json:"price_consent_status"`
+// 	PriceUSD                 float64 `json:"price_usd"`
+// 	ProductID                string  `json:"productid"`
+// 	Quantity                 int     `json:"quantity"`
+// 	SDKVersion               string  `json:"sdk_version"`
+// 	SortDateMS               int64   `json:"sort_date_ms"`
+// 	Source                   string  `json:"source"`
+// 	Store                    string  `json:"store"`
+// 	SubPlatform              string  `json:"sub_platform"`
+// 	SubscriberID             string  `json:"subscriberid"`
+// 	SystemVersion            string  `json:"system_version"`
+// 	TransactionID            string  `json:"transaction_id"`
+// 	Type                     int     `json:"type"`
+// 	UserUnknown              bool    `json:"userunknown"`
+// 	VendorID                 string  `json:"vendorid"`
+// 	WebOrderLineItemID       string  `json:"web_order_line_item_id"`
+// }
+
 type WebhookPayload struct {
-	AdjustID                 string  `json:"adjustid"`
-	AID                      string  `json:"aid"`
-	AppVersion               string  `json:"app_version"`
-	AppID                    string  `json:"appid"`
-	AppsFlyerID              string  `json:"appsflyerid"`
-	ASID                     string  `json:"asid"`
-	AutoRenewProductID       string  `json:"auto_renew_product_id"`
-	AutoRenewStatus          bool    `json:"auto_renew_status"`
-	BundleVersion            string  `json:"bundle_version"`
-	CountryCode              string  `json:"country_code"`
-	CurrencyCode             string  `json:"currency_code"`
-	CustomID                 string  `json:"customid"`
-	DateMS                   int64   `json:"date_ms"`
-	Device                   string  `json:"device"`
-	Environment              string  `json:"environment"`
-	Estimated                int     `json:"estimated"`
-	EventDate                int64   `json:"event_date"`
-	ExpirationIntent         string  `json:"expiration_intent"`
-	ExpireDateMS             int64   `json:"expire_date_ms"`
-	GAID                     string  `json:"gaid"`
-	GracePeriodExpiresDateMS int64   `json:"grace_period_expires_date_ms"`
-	GroupIdentifier          string  `json:"group_identifier"`
-	ID                       string  `json:"id"`
-	IDFA                     string  `json:"idfa"`
-	IDFV                     string  `json:"idfv"`
-	IP                       string  `json:"ip"`
-	IsInBillingRetryPeriod   bool    `json:"is_in_billing_retry_period"`
-	LicenseCode              string  `json:"licensecode"`
-	OfferCodeRefName         string  `json:"offer_code_ref_name"`
-	OfferingID               string  `json:"offeringid"`
-	OriginalPurchaseDateMS   int64   `json:"original_purchase_date_ms"`
-	OriginalTransactionID    string  `json:"original_transaction_id"`
-	PackageName              string  `json:"packagename"`
-	Price                    float64 `json:"price"`
-	PriceConsentStatus       string  `json:"price_consent_status"`
-	PriceUSD                 float64 `json:"price_usd"`
-	ProductID                string  `json:"productid"`
-	Quantity                 int     `json:"quantity"`
-	SDKVersion               string  `json:"sdk_version"`
-	SortDateMS               int64   `json:"sort_date_ms"`
-	Source                   string  `json:"source"`
-	Store                    string  `json:"store"`
-	SubPlatform              string  `json:"sub_platform"`
-	SubscriberID             string  `json:"subscriberid"`
-	SystemVersion            string  `json:"system_version"`
-	TransactionID            string  `json:"transaction_id"`
-	Type                     int     `json:"type"`
-	UserUnknown              bool    `json:"userunknown"`
-	VendorID                 string  `json:"vendorid"`
-	WebOrderLineItemID       string  `json:"web_order_line_item_id"`
+	ID                 primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	EventID            string             `bson:"event_id,omitempty" json:"event_id,omitempty"`
+	Type               int                `bson:"type" json:"type"`
+	ExpireDateMS       int64              `bson:"expire_date_ms" json:"expire_date_ms"`
+	AutoRenewProductID string             `bson:"auto_renew_product_id,omitempty" json:"auto_renew_product_id,omitempty"`
+	ProductID          string             `bson:"product_id,omitempty" json:"product_id,omitempty"`
+	TransactionID      string             `bson:"transaction_id,omitempty" json:"transaction_id,omitempty"`
+	SubscriberID       string             `bson:"subscriber_id,omitempty" json:"subscriber_id,omitempty"`
+	CustomID           string             `bson:"custom_id,omitempty" json:"custom_id,omitempty"`
+	DateMS             int64              `bson:"date_ms,omitempty" json:"date_ms,omitempty"`
+	Price              float64            `bson:"price,omitempty" json:"price,omitempty"`
+	PriceUSD           float64            `bson:"price_usd,omitempty" json:"price_usd,omitempty"`
+	CurrencyCode       string             `bson:"currency_code,omitempty" json:"currency_code,omitempty"`
+	CountryCode        string             `bson:"country_code,omitempty" json:"country_code,omitempty"`
+	Store              string             `bson:"store,omitempty" json:"store,omitempty"`
+	Estimated          int                `bson:"estimated,omitempty" json:"estimated,omitempty"`
+	Environment        string             `bson:"environment,omitempty" json:"environment,omitempty"`
+	Source             string             `bson:"source,omitempty" json:"source,omitempty"`
 }

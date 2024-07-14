@@ -2,19 +2,20 @@ package gateway
 
 import (
 	"loveair/email"
-	"loveair/email/mailersend"
+	"loveair/email/sendgrid"
 )
 
 type ETYPE string
 
 const (
 	MAILERSEND ETYPE = "mailersend"
+	SENDGRID   ETYPE = "sendgrid"
 )
 
 func EConnect(options ETYPE, Config map[string]string) email.Interface {
 	switch options {
-	case MAILERSEND:
-		return mailersend.InitMailerSend(Config)
+	case SENDGRID:
+		return sendgrid.InitSendGridDBInstance(Config)
 	}
 	return nil
 }

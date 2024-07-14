@@ -61,16 +61,17 @@ func (neo *Neo4j) UpdateUserInfo(id string, usr *models.User) error {
 
 	// Prepare parameters
 	param := map[string]interface{}{
-		"id":       id,
-		"gender":   usr.Gender,
-		"dob":      usr.DOB,
-		"rel_int":  usr.RelationshipIntention,
-		"religion": usr.Religion,
+		"id":        id,
+		"gender":    usr.Gender,
+		"dob":       usr.DOB,
+		"rel_int":   usr.RelationshipIntention,
+		"religion":  usr.Religion,
+		"is_paused": false,
 	}
 
 	// Build base update query
 	updateQuery := `MATCH (n:USER { id: $id}) 
-					SET n.gender = $gender, n.dob = $dob, n.rel_int = $rel_int, n.religion = $religion
+					SET n.gender = $gender, n.dob = $dob, n.rel_int = $rel_int, n.religion = $religion, n.is_paused = $is_paused
 					`
 
 	// Build relationship creation queries for interests
@@ -567,6 +568,26 @@ func (neo *Neo4j) AddUnmatchRelationship(ts time.Time, sid, rid string) error {
 		MERGE (on)-[:UNMATCH {timestamp: $timestamp}]->(n)
 		
 		`,
+		param,
+		neo4j.EagerResultTransformer)
+
+	return err
+}
+
+func (neo *Neo4j) UpdateUserBoost(id string, boost int) error {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	session := neo.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	param := map[string]interface{}{
+		"id":    id,
+		"boost": boost,
+	}
+
+	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
+		"MATCH (n:USER {id: $id}) SET n.boost = $boost",
 		param,
 		neo4j.EagerResultTransformer)
 

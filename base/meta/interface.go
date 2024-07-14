@@ -21,4 +21,7 @@ type Interface interface {
 	AddPassRelationship(time.Time, string, string) error
 	GetMeetRequests(string) ([]models.MeetRequest, error)
 	AddUnmatchRelationship(time.Time, string, string) error
+
+	//Subscription Boost
+	UpdateUserBoost(string, int) error
 }

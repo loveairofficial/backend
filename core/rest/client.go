@@ -15,7 +15,9 @@ import (
 	stream "github.com/GetStream/stream-chat-go/v6"
 	"github.com/cloudinary/cloudinary-go/api"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/houseme/mobiledetect/ua"
+	"github.com/gorilla/schema"
+
+	// "github.com/houseme/mobiledetect/ua"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -42,7 +44,8 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	// generate 4 digit pin
 	pin, err := GenerateRandomPin()
 	if err != nil {
-		fmt.Println("Error generating PIN:", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
 		return
 	}
 
@@ -56,7 +59,9 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	// send pin to client via email
 	resStatus, err := re.emailIf.SendEmailVerificationPin(email, pin)
 	if err != nil || resStatus != 202 {
+		w.WriteHeader(http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
+		return
 	}
 
 	//sign-up user
@@ -80,7 +85,7 @@ func (re *Rest) VerifyEmailVerificationPin(w http.ResponseWriter, r *http.Reques
 
 	// validate pin
 	if res != pin {
-		w.WriteHeader(http.StatusExpectationFailed)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	} else {
 		//delete cache email & pin
@@ -97,10 +102,107 @@ func (re *Rest) VerifyEmailVerificationPin(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// Reset Password
+func (re *Rest) HandleSendPasswordResetPin(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+
+	// Check if there is an already existing account with the email.
+	if err := re.dbase.VerifyEmailExist(email); err == mongo.ErrNoDocuments {
+		w.WriteHeader(http.StatusNotFound)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	// generate 4 digit pin
+	pin, err := GenerateRandomPin()
+	if err != nil {
+		fmt.Println("Error generating PIN:", err)
+		return
+	}
+
+	// cache it on redis
+	err = re.cbaseIf.SetPin(email, pin, time.Minute*10)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// send pin to client via email
+	resStatus, err := re.emailIf.SendPasswordResetPin(email, pin)
+	if err != nil || resStatus != 202 {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	//sign-up user
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Password reset pin sent successfully ",
+	})
+}
+
+func (re *Rest) HandleVerifyPasswordResetPin(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	pin := r.URL.Query().Get("pin")
+
+	//retrieve pin from cache
+	res, err := re.cbaseIf.GetPin(email)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// validate pin
+	if res != pin {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	} else {
+		//delete cache email & pin
+		err = re.cbaseIf.DeletePin(email)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+		}
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Pin verification successfull",
+	})
+}
+
+func (re *Rest) HandlePasswordReset(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+	password := r.URL.Query().Get("password")
+
+	if bytes, err := bcrypt.GenerateFromPassword([]byte(password), 5); err == nil {
+		password = string(bytes)
+	} else {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	// Store credentials to database.
+	err := re.dbase.UpdatePassword(email, password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Pin verification successfull",
+	})
+}
+
 func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		re.sLogger.Log.Error(err)
 		return
 	}
@@ -108,6 +210,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	// Create a new account.
 	usr := new(models.User)
 
+	decoder := schema.NewDecoder()
 	decoder.IgnoreUnknownKeys(true)
 
 	err = decoder.Decode(usr, r.Form)
@@ -126,7 +229,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	if bytes, err := bcrypt.GenerateFromPassword([]byte(usr.Password), 5); err == nil {
 		usr.Password = string(bytes)
 	} else {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
 		return
 	}
@@ -196,18 +299,17 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	// Set the token and expiration time as a header
 	rTokenWithExpiration := fmt.Sprintf("%s|%d", rtknString, time.Now().Add(refreshTknExpiration).Unix())
 
-	usrAgent := ua.New(r.UserAgent())
+	device := new(models.Device)
+
+	// Parse the devices JSON string
+	if err := json.Unmarshal([]byte(r.PostForm.Get("device")), device); err != nil {
+		re.sLogger.Log.Errorln(err)
+	}
+
+	device.DeviceID = did
 
 	// add new device to database.
-	err = re.dbase.AddNewDevice(&models.Device{
-		DeviceID:    did,
-		Device:      usrAgent.Device(),
-		Platform:    usrAgent.Platform(),
-		OSName:      usrAgent.OSInfo().Name,
-		OSVersion:   usrAgent.OSInfo().Version,
-		BrowserName: usrAgent.UserAgentBrowser().Name,
-	}, usr.Email)
-
+	err = re.dbase.AddNewDevice(device, usr.Email)
 	if err != nil {
 		re.sLogger.Log.Errorln(err)
 	}
@@ -226,6 +328,11 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Error creating token", http.StatusInternalServerError)
 		return
+	}
+
+	resStatus, err := re.emailIf.SendWelcomeEmail(usr.Email, usr.FirstName)
+	if err != nil || resStatus != 202 {
+		re.sLogger.Log.Errorln(err)
 	}
 
 	re.writeJSON(w, Response{
@@ -248,7 +355,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		re.sLogger.Log.Error(err)
 		return
 	}
@@ -256,11 +363,9 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 	creds, err := re.dbase.GetCredential(r.PostForm.Get("email"))
 	if err != nil {
 		re.sLogger.Log.Errorln(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	re.sLogger.Log.Infoln("------------------", creds)
 
 	if err = bcrypt.CompareHashAndPassword([]byte(creds.Password), []byte(r.PostForm.Get("password"))); err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -295,18 +400,18 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 	// Set the token and expiration time as a header
 	rTokenWithExpiration := fmt.Sprintf("%s|%d", rtknString, time.Now().Add(refreshTknExpiration).Unix())
 
-	usrAgent := ua.New(r.UserAgent())
+	// add new device to database.
+	device := new(models.Device)
+
+	// Parse the devices JSON string
+	if err := json.Unmarshal([]byte(r.PostForm.Get("device")), device); err != nil {
+		re.sLogger.Log.Errorln(err)
+	}
+
+	device.DeviceID = did
 
 	// add new device to database.
-	err = re.dbase.AddNewDevice(&models.Device{
-		DeviceID:    did,
-		Device:      usrAgent.Device(),
-		Platform:    usrAgent.Platform(),
-		OSName:      usrAgent.OSInfo().Name,
-		OSVersion:   usrAgent.OSInfo().Version,
-		BrowserName: usrAgent.UserAgentBrowser().Name,
-	}, creds.Email)
-
+	err = re.dbase.AddNewDevice(device, creds.Email)
 	if err != nil {
 		re.sLogger.Log.Errorln(err)
 	}
@@ -927,5 +1032,90 @@ func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
 	// Handle the webhook payload
 	fmt.Printf("Received webhook: %+v\n", payload)
 
+	switch payload.Type {
+	case 5001:
+		fmt.Println("Subscription Initial Buy event")
+		err := re.dbase.UpdateSubscription(payload.CustomID, "Premium")
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.mbase.UpdateUserBoost(payload.CustomID, 10)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.dbase.AddTransaction(payload)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+	//set user to premium and boost user in meta db and store tx in tx clx
+	case 5002:
+		// 	fmt.Println("Subscription Restarted event")
+	case 5003:
+		//set user to premium and boost user in meta db and store tx in tx clx
+		fmt.Println("Subscription automatically renewed")
+
+		err = re.dbase.AddTransaction(payload)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+	case 5004:
+		fmt.Println("Subscription Expired event")
+		err := re.dbase.UpdateSubscription(payload.CustomID, "Free")
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.mbase.UpdateUserBoost(payload.CustomID, 0)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+		// set user to free and remove boost from meta bd
+		// case 5005:
+		// 	fmt.Println("Subscription Did Change Renewal Status event")
+		// case 5006:
+		// 	fmt.Println("User is in Billing Retry Period event")
+		// case 5007:
+		// 	fmt.Println("Subscription Product Change event")
+		// case 5008:
+		// 	fmt.Println("In App Purchase event")
+		// case 5009:
+		// 	fmt.Println("Subscription Refund event")
+		// case 5010:
+		// 	fmt.Println("Subscription Paused event")
+		// case 5011:
+		// 	fmt.Println("Subscription Resumed event")
+		// case 5012:
+		// 	fmt.Println("Connect License event")
+		// case 5013:
+		// 	fmt.Println("Disconnect License event")
+	default:
+		fmt.Println("Unknown event type")
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
+
+// CustomID
+// Price
+// ProductID
+// IsInBillingRetryPeriod
+// CountryCode
+// CurrencyCode
+// AutoRenewStatus
+// GracePeriodExpiresDateMS
+// ExpireDateMS
+// ExpirationIntent
+
+// i need to know if the event was a subscription event
+// i need to know if its a subscription renewal event
+// i need to know if i was a expiration without renewal event

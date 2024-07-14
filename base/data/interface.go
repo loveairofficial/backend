@@ -42,6 +42,7 @@ type Interface interface {
 	UpdateLocation(string, models.Location) error
 	UpdateProfile(string, models.User) error
 	UpdateAccount(string, models.User) error
+	UpdatePassword(string, string) error
 
 	// Preference
 	UpdatePreference(string, models.Preference, string, string, int) error
@@ -65,4 +66,8 @@ type Interface interface {
 
 	//Report
 	AddReport(models.Report) error
+
+	//Subscription
+	UpdateSubscription(string, string) error
+	AddTransaction(models.WebhookPayload) error
 }

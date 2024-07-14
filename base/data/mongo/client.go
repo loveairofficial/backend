@@ -93,7 +93,7 @@ func (m *MongoDB) AddNewDevice(d *models.Device, email string) error {
 	update := bson.M{
 		"$push": bson.M{
 			"devices": bson.M{
-				"$each": []interface{}{*d}, "$slice": -5}}}
+				"$each": []interface{}{*d}, "$slice": -3}}}
 
 	err := m.Updater(UserCLX, filter, update)
 	return err
@@ -187,8 +187,18 @@ func (m *MongoDB) UpdateAccount(userID string, usr models.User) error {
 	update := bson.M{"$set": bson.M{
 		//! commented out because both need email verification.
 		// "email":     usr.Email,
-		// "phone":     usr.Phone,
+		"phone":     usr.Phone,
 		"is_paused": usr.IsPaused,
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
+func (m *MongoDB) UpdatePassword(email, password string) error {
+	filter := bson.M{"email": email}
+	update := bson.M{"$set": bson.M{
+		"password": password,
 	}}
 
 	err := m.Updater(UserCLX, filter, update)
@@ -579,6 +589,52 @@ func (m *MongoDB) AddReport(report models.Report) error {
 
 	database := m.client.Database(LADB)
 	collection := database.Collection(ReportCLX)
+	_, err := collection.InsertOne(ctx, data)
+
+	return err
+}
+
+// Subscription
+func (m *MongoDB) UpdateSubscription(userID, status string) error {
+	filter := bson.M{"id": userID}
+	update := bson.M{"$set": bson.M{
+		"subscription": status,
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
+func (m *MongoDB) AddTransaction(payload models.WebhookPayload) error {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	_id := primitive.NewObjectID()
+
+	data := primitive.M{
+		"_id":                   _id,
+		"id":                    payload.ID,
+		"event_id":              payload.EventID,
+		"type":                  payload.Type,
+		"expire_date_ms":        payload.ExpireDateMS,
+		"auto_renew_product_id": payload.AutoRenewProductID,
+		"product_id":            payload.ProductID,
+		"transaction_id":        payload.TransactionID,
+		"subscriber_id":         payload.SubscriberID,
+		"custom_id":             payload.CustomID,
+		"date_ms":               time.Unix(0, payload.DateMS*int64(time.Millisecond)),
+		"price":                 payload.Price,
+		"price_usd":             payload.PriceUSD,
+		"currency_code":         payload.CurrencyCode,
+		"country_code":          payload.CountryCode,
+		"store":                 payload.Store,
+		"estimated":             payload.Estimated,
+		"environment":           payload.Environment,
+		"source":                payload.Source,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(TransactionCLX)
 	_, err := collection.InsertOne(ctx, data)
 
 	return err

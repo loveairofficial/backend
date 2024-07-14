@@ -11,11 +11,12 @@ import (
 )
 
 const (
-	LADB        = "LADB"
-	UserCLX     = "UserCLX"
-	ChatCLX     = "ChatCLX"
-	ReportCLX   = "ReportCLX"
-	FeedbackCLX = "FeedbackCLX"
+	LADB           = "LADB"
+	UserCLX        = "UserCLX"
+	ChatCLX        = "ChatCLX"
+	ReportCLX      = "ReportCLX"
+	FeedbackCLX    = "FeedbackCLX"
+	TransactionCLX = "TransactionCLX"
 )
 
 type MongoDB struct {

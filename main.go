@@ -110,15 +110,14 @@ func init() {
 		"local_password": redis_local_pass,
 	})
 
-	mailersend_api_key := os.Getenv("MAILERSEND_API_KEY")
-	if mailersend_api_key == "" {
-		// mailersend_api_key = "mlsn.cdf4df1d2bcdcf1d907be7e44d76e741908e922fbe2979dcdbdf6f9af448b0dc"
-		mailersend_api_key = "mlsn.5380401b24a6ab7fb13a3ddc499a4bcf77e9c9f2d5d2cf6e6a35fb902aebaab0"
+	email_api_key := os.Getenv("EMAIL_API_KEY")
+	if email_api_key == "" {
+		email_api_key = "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"
 	}
 
 	// Init Email
-	emailIf = emailgw.EConnect(emailgw.ETYPE("mailersend"), map[string]string{
-		"API_KEY": mailersend_api_key},
+	emailIf = emailgw.EConnect(emailgw.ETYPE("sendgrid"), map[string]string{
+		"API_KEY": email_api_key},
 	)
 
 	//! turn on when ready.

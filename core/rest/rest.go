@@ -17,11 +17,8 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/schema"
 	"github.com/rs/xid"
 )
-
-var decoder = schema.NewDecoder()
 
 var (
 	accessTknExpiration  = 24 * time.Hour
