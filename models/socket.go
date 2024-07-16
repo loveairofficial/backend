@@ -47,6 +47,7 @@ type Data struct {
 	Message        Message     `json:"message" bson:"message"`
 	Note           string      `json:"note"`
 	Report         Report      `json:"report"`
+	Feedback       Feedback    `json:"feedback"`
 }
 
 type MeetRequest struct {

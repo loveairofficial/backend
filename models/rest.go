@@ -9,7 +9,8 @@ import (
 type User struct {
 	ID                    string    `json:"id" bson:"id"`
 	IsActive              bool      `json:"isActive" bson:"is_active"`
-	IsDeactivated         bool      `json:"isDeactivated" bson:"is_deactivated"`
+	DeactivatedBy         string    `json:"deactivatedBy" bson:"deactivated_by"`
+	DeactivationDate      time.Time `json:"deactivationDate" bson:"deactivation_date"`
 	IsPaused              bool      `json:"isPaused" bson:"is_paused"`
 	Verification          bool      `json:"verification" bson:"verification"`
 	FirstName             string    `json:"firstName" bson:"first_name"`
@@ -29,12 +30,13 @@ type User struct {
 	Religion              string    `json:"religion" bson:"religion"`
 	ProfilePicture        Photo     `json:"profilePicture" bson:"profile_picture"`
 
-	IntroType           string   `json:"introType,omitempty" bson:"intro_type"`
-	IntroVideoUri       string   `json:"introVideoUri,omitempty" bson:"intro_video_uri"`
-	IntroVideoThumbnail string   `json:"introVideoThumbnail,omitempty" bson:"intro_video_thumbnail"`
-	IntroAudioUri       string   `json:"introAudioUri,omitempty" bson:"intro_audio_uri"`
-	Photos              []Photo  `json:"photos,omitempty" bson:"photos"`
-	Location            Location `json:"location,omitempty" bson:"location"`
+	IntroType           string       `json:"introType,omitempty" bson:"intro_type"`
+	IntroVideoUri       string       `json:"introVideoUri,omitempty" bson:"intro_video_uri"`
+	IntroVideoThumbnail string       `json:"introVideoThumbnail,omitempty" bson:"intro_video_thumbnail"`
+	IntroAudioUri       string       `json:"introAudioUri,omitempty" bson:"intro_audio_uri"`
+	Photos              []Photo      `json:"photos,omitempty" bson:"photos"`
+	Location            Location     `json:"location,omitempty" bson:"location"`
+	Notification        Notification `json:"notification,omitempty" bson:"notification"`
 
 	Address   string `json:"address,omitempty" bson:"address"`
 	Vicinity  string `json:"vicinity,omitempty" bson:"vicinity"`
@@ -57,6 +59,11 @@ type Location struct {
 	Vicinity string  `json:"vicinity,omitempty" bson:"vicinity"`
 }
 
+type Notification struct {
+	Email bool `json:"email" bson:"email"`
+	Push  bool `json:"push" bson:"push"`
+}
+
 // User info stored in neo4j
 type MetaUser struct{}
 
@@ -65,10 +72,9 @@ type Device struct {
 	DeviceID string `json:"device_id,omitempty" bson:"device_id"`
 	PushTkn  string `json:"push_tkn" bson:"push_tkn"`
 	// OS name (Eg: “Windows”)
-	OSName     string `json:"os_name,omitempty" bson:"os_name"`
-	Brand      string `json:"brand,omitempty" bson:"brand"`
-	DeviceType string `json:"device_type,omitempty" bson:"device_type"`
-	ModelName  string `json:"model_name,omitempty" bson:"model_name"`
+	OSName    string `json:"os_name,omitempty" bson:"os_name"`
+	Brand     string `json:"brand,omitempty" bson:"brand"`
+	ModelName string `json:"model_name,omitempty" bson:"model_name"`
 }
 
 type Preference struct {
@@ -134,12 +140,11 @@ type Report struct {
 }
 
 type Feedback struct {
-	ID          string    `json:"id" bson:"id"`
-	Content     string    `json:"content" bson:"content,"`
-	Status      string    `json:"status" bson:"status,"` // eg. pending, resolved
-	SenderID    string    `json:"senderid" bson:"sender_id,"`
-	RecipientID string    `json:"recipientid," bson:"recipient_id"`
-	Timestamp   time.Time `json:"timestamp" bson:"timestamp,"`
+	ID        string    `json:"id" bson:"id"`
+	Content   string    `json:"content" bson:"content,"`
+	Status    string    `json:"status" bson:"status,"` // eg. pending, resolved
+	SenderID  string    `json:"senderid" bson:"sender_id,"`
+	Timestamp time.Time `json:"timestamp" bson:"timestamp,"`
 }
 
 // type WebhookPayload struct {

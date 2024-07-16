@@ -83,6 +83,8 @@ func (s *Socket) delegate(receiveCh chan models.Incomming, sendCh chan *models.O
 				s.passStatusUpdate(&pl.Data)
 			case "report":
 				s.report(&pl.Data)
+			case "feedback":
+				s.feedback(&pl.Data)
 
 			default:
 				s.sLogger.Log.Errorln("Invalid Tag")
@@ -155,6 +157,7 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 	usr.Presence = pl.Presence
 	usr.MutualInterest = pl.MutualInterest
 	usr.ExclusiveInterest = uniqueValues(usr.Interests, usr.MutualInterest)
+	usr.Notification = models.Notification{}
 
 	// Init a new meet request
 	mr := new(models.MeetRequest)
@@ -242,6 +245,12 @@ func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) 
 		s.sLogger.Log.Errorln(err)
 		return
 	}
+
+	usr.LastName = ""
+	// usr.Presence = pl.Presence
+	// usr.MutualInterest = pl.MutualInterest
+	// usr.ExclusiveInterest = uniqueValues(usr.Interests, usr.MutualInterest)
+	usr.Notification = models.Notification{}
 
 	pl.MeetRequest.User = usr
 	pl.MeetRequest.CallID = callID
@@ -585,6 +594,19 @@ func (s *Socket) report(pl *models.Data) {
 	pl.Report.Timestamp = time.Now().UTC()
 
 	err := s.dbase.AddReport(pl.Report)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
+}
+
+// ~ Feedback.
+func (s *Socket) feedback(pl *models.Data) {
+	pl.Feedback.ID = s.generateID()
+	pl.Feedback.Status = "Pending"
+	pl.Feedback.Timestamp = time.Now().UTC()
+
+	err := s.dbase.AddFeedback(pl.Feedback)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return

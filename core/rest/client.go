@@ -260,6 +260,10 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	usr.RoseCount = 0
 	usr.Subscription = "Free"
 	usr.Religion = ""
+	usr.Notification = models.Notification{
+		Email: true,
+		Push:  true,
+	}
 
 	// Store credentials to database.
 	err = re.dbase.AddUser(usr)
@@ -324,7 +328,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//! userID should be username
-	sToken, err := client.CreateToken(usr.ID, time.Now().Add(accessTknExpiration))
+	sToken, err := client.CreateToken(usr.ID, time.Now().Add(streamTknExpiration))
 	if err != nil {
 		http.Error(w, "Error creating token", http.StatusInternalServerError)
 		return
@@ -368,8 +372,135 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(creds.Password), []byte(r.PostForm.Get("password"))); err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
 		http.Error(w, "Email or password incorrect", http.StatusUnauthorized)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	//check is account is active
+	//! Create a cron job to delete accounts that are deactivated by Users after 30 days.
+	if !creds.IsActive {
+		if creds.DeactivatedBy == "User" {
+			// Deactivation date is less than 30 days old, ask user to reactivate to sign in.
+			http.Error(w, "Account is deactivated, user needs to reactivate account to sign-in", http.StatusForbidden)
+			re.sLogger.Log.Infoln("Account is deactivated, user needs to reactivate account to sign-in")
+			return
+		} else {
+			// account deactivated by admin, ask user to contact support for appesl.
+			http.Error(w, "Account is deactivated", http.StatusGone)
+			re.sLogger.Log.Infoln("Account is deactivated by admin")
+			return
+		}
+
+	}
+
+	// Generate jwt access token.
+	atknString, err := re.generateAccessTkn(accessTknExpiration, r.PostForm.Get("email"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	fmt.Println("access: ", atknString)
+
+	// Set the token and expiration time as a header
+	aTokenWithExpiration := fmt.Sprintf("%s|%d", atknString, time.Now().Add(accessTknExpiration).Unix())
+
+	// Generate jwt refresh token.
+	rtknString, did, err := re.generateRefreshTkn(refreshTknExpiration, r.PostForm.Get("email"), "")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	fmt.Println("refresh: ", rtknString)
+
+	// Set the token and expiration time as a header
+	rTokenWithExpiration := fmt.Sprintf("%s|%d", rtknString, time.Now().Add(refreshTknExpiration).Unix())
+
+	// add new device to database.
+	device := new(models.Device)
+
+	// Parse the devices JSON string
+	if err := json.Unmarshal([]byte(r.PostForm.Get("device")), device); err != nil {
+		re.sLogger.Log.Errorln(err)
+	}
+
+	device.DeviceID = did
+
+	// add new device to database.
+	err = re.dbase.AddNewDevice(device, creds.Email)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+	}
+
+	//~ Generate jwt stream token
+	//! do not hardcode credentials!!!
+	client, err := stream.NewClient("vj79fb5bcmwt", "w82x6tnpjwjumdjqraj267vhskpgs34ptp8ydue8jzfg2rwye7dxab27f8jkgcub")
+	if err != nil {
+		http.Error(w, "Error creating Stream client", http.StatusInternalServerError)
+		return
+	}
+
+	//! userID should be username
+	sToken, err := client.CreateToken(creds.ID, time.Now().Add(streamTknExpiration))
+	if err != nil {
+		http.Error(w, "Error creating token", http.StatusInternalServerError)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Login successful",
+		Data: Data{
+			AccessTkn:      aTokenWithExpiration,
+			RefreshTkn:     rTokenWithExpiration,
+			StreamTkn:      sToken,
+			IsOnboarded:    creds.IsOnboarded,
+			Email:          creds.Email,
+			ID:             creds.ID,
+			FirstName:      creds.FirstName,
+			ProfilePicture: creds.ProfilePicture,
+			Subscription:   creds.Subscription,
+		},
+	})
+}
+
+func (re *Rest) ReactivateAccount(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		re.sLogger.Log.Error(err)
+		return
+	}
+
+	creds, err := re.dbase.GetCredential(r.PostForm.Get("email"))
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// creds, err := re.dbase.GetCredential(r.PostForm.Get("email"))
+	err = re.dbase.ReactivateAccount(creds.ID)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		re.writeJSON(w, Response{
+			Status:     "500",
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Error saving data to database",
+		})
+		return
+	}
+
+	// Store credentials to metabase.
+	err = re.mbase.ReactivateAccount(creds.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
 		return
 	}
@@ -425,7 +556,7 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//! userID should be username
-	sToken, err := client.CreateToken(creds.ID, time.Now().Add(accessTknExpiration))
+	sToken, err := client.CreateToken(creds.ID, time.Now().Add(streamTknExpiration))
 	if err != nil {
 		http.Error(w, "Error creating token", http.StatusInternalServerError)
 		return
@@ -792,6 +923,7 @@ func (re *Rest) GetChats(w http.ResponseWriter, r *http.Request) {
 func (re *Rest) GetProfile(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
+	// !  update this to call its seperate get profile
 	usr, err := re.dbase.GetPotentialMatch(id)
 	if err != nil {
 		re.sLogger.Log.Errorln(err)
@@ -883,6 +1015,45 @@ func (re *Rest) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 			re.sLogger.Log.Errorln(err)
 			return
 		}
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "",
+	})
+}
+
+func (re *Rest) UpdateNotification(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		re.sLogger.Log.Error(err)
+		return
+	}
+
+	fmt.Println(r.PostFormValue("location"))
+
+	notiStr := r.PostFormValue("notification")
+
+	var noti models.Notification
+	if err := json.Unmarshal([]byte(notiStr), &noti); err != nil {
+		http.Error(w, "Invalid interests data", http.StatusBadRequest)
+		return
+	}
+
+	err = re.dbase.UpdateNotification(id, noti)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		re.writeJSON(w, Response{
+			Status:     "500",
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Error saving data to database",
+		})
+		return
 	}
 
 	re.writeJSON(w, Response{
@@ -992,6 +1163,76 @@ func (re *Rest) UpdateAccount(w http.ResponseWriter, r *http.Request) {
 		Status:     "200",
 		StatusCode: http.StatusOK,
 		Message:    "",
+	})
+}
+
+func (re *Rest) DeactivateAccount(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+
+	err := re.dbase.DeactivateAccount(id, "User")
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		re.writeJSON(w, Response{
+			Status:     "500",
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Error saving data to database",
+		})
+		return
+	}
+
+	// Store credentials to metabase.
+	err = re.mbase.DeactivateAccount(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "",
+	})
+}
+
+func (re *Rest) UpdatePassword(w http.ResponseWriter, r *http.Request) {
+	cp := r.FormValue("current-password")
+	np := r.FormValue("new-password")
+
+	creds, err := re.dbase.GetCredential(r.URL.Query().Get("email"))
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if err = bcrypt.CompareHashAndPassword([]byte(creds.Password), []byte(cp)); err != nil {
+		http.Error(w, "Email or password incorrect", http.StatusUnauthorized)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	// Generate hash from raw password string and store.
+	if bytes, err := bcrypt.GenerateFromPassword([]byte(np), 5); err == nil {
+		np = string(bytes)
+	} else {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		re.sLogger.Log.Errorln(err)
+		return
+	}
+
+	err = re.dbase.UpdatePassword(r.URL.Query().Get("email"), np)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Message:    "Password updated successfully",
 	})
 }
 

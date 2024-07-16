@@ -22,6 +22,7 @@ import (
 
 var (
 	accessTknExpiration  = 24 * time.Hour
+	streamTknExpiration  = 30 * time.Hour
 	refreshTknExpiration = 168 * time.Hour
 )
 

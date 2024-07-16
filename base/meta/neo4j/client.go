@@ -211,6 +211,48 @@ func (neo *Neo4j) UpdateAccount(id string, iPaused bool) error {
 	return err
 }
 
+func (neo *Neo4j) DeactivateAccount(id string) error {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	session := neo.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	param := map[string]interface{}{
+		"id":        id,
+		"is_paused": true,
+		"is_active": false,
+	}
+
+	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
+		"MATCH (n:USER {id: $id}) SET n.is_paused = $is_paused, n.is_active = $is_active",
+		param,
+		neo4j.EagerResultTransformer)
+
+	return err
+}
+
+func (neo *Neo4j) ReactivateAccount(id string) error {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	session := neo.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	defer session.Close(ctx)
+
+	param := map[string]interface{}{
+		"id":        id,
+		"is_paused": false,
+		"is_active": true,
+	}
+
+	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
+		"MATCH (n:USER {id: $id}) SET n.is_paused = $is_paused, n.is_active = $is_active",
+		param,
+		neo4j.EagerResultTransformer)
+
+	return err
+}
+
 func ConvertInterfaceToStringSlice(input []interface{}) []string {
 	var output []string
 

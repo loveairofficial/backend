@@ -195,8 +195,9 @@ func (m *MongoDB) GetStageFive(id string) (string, string, string, error) {
 func (m *MongoDB) SaveStageSix(id int, images []models.Photo, userID string) error {
 	filter := bson.M{"id": userID}
 	update := bson.M{"$set": bson.M{
-		"stage_ID": id,
-		"photos":   images,
+		"stage_ID":  id,
+		"photos":    images,
+		"is_paused": false,
 	}}
 
 	err := m.Updater(UserCLX, filter, update)

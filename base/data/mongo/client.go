@@ -64,16 +64,19 @@ func (m *MongoDB) GetCredential(email string) (*models.User, error) {
 	defer cancel()
 
 	projection := bson.M{
-		"password":        1,
-		"is_onboarded":    1,
-		"email":           1,
-		"id":              1,
-		"first_name":      1,
-		"profile_picture": bson.M{"$arrayElemAt": bson.A{"$photos", 0}},
-		"is_paused":       1,
-		"phone":           1,
-		"subscription":    1,
-		"verification":    1,
+		"password":          1,
+		"is_onboarded":      1,
+		"email":             1,
+		"id":                1,
+		"first_name":        1,
+		"profile_picture":   bson.M{"$arrayElemAt": bson.A{"$photos", 0}},
+		"is_paused":         1,
+		"phone":             1,
+		"subscription":      1,
+		"verification":      1,
+		"is_active":         1,
+		"deactivated_by":    1,
+		"deactivation_date": 1,
 	}
 
 	creds := new(models.User)
@@ -97,6 +100,34 @@ func (m *MongoDB) AddNewDevice(d *models.Device, email string) error {
 
 	err := m.Updater(UserCLX, filter, update)
 	return err
+}
+
+func (m *MongoDB) GetDevice(email, did string) (*models.Device, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	projection := bson.M{
+		"devices": 1,
+	}
+
+	filter := bson.M{
+		"email":   email,
+		"devices": bson.M{"$elemMatch": bson.M{"device_id": did}},
+	}
+
+	creds := new(models.User)
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(UserCLX)
+
+	err := collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&creds)
+
+	if len(creds.Devices) == 0 {
+		return nil, err
+
+	}
+
+	return &creds.Devices[0], nil
 }
 
 func (m *MongoDB) DeleteDevice(email, did string) error {
@@ -160,6 +191,17 @@ func (m *MongoDB) UpdateLocation(userID string, loc models.Location) error {
 	return err
 }
 
+func (m *MongoDB) UpdateNotification(userID string, noti models.Notification) error {
+	filter := bson.M{"id": userID}
+	update := bson.M{"$set": bson.M{
+		"notification.email": noti.Email,
+		"notification.push":  noti.Push,
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
 func (m *MongoDB) UpdateProfile(userID string, usr models.User) error {
 	filter := bson.M{"id": userID}
 	update := bson.M{"$set": bson.M{
@@ -194,6 +236,34 @@ func (m *MongoDB) UpdateAccount(userID string, usr models.User) error {
 	err := m.Updater(UserCLX, filter, update)
 	return err
 }
+
+func (m *MongoDB) DeactivateAccount(userID, by string) error {
+	filter := bson.M{"id": userID}
+	update := bson.M{"$set": bson.M{
+		"is_paused":         true,
+		"is_active":         false,
+		"deactivated_by":    by,
+		"deactivation_date": time.Now().UTC(),
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
+func (m *MongoDB) ReactivateAccount(id string) error {
+	filter := bson.M{"id": id}
+	update := bson.M{"$set": bson.M{
+		"is_paused":         false,
+		"is_active":         true,
+		"deactivated_by":    "",
+		"deactivation_date": time.Time{},
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
+//!reactivate account must reset "deactivation_date"
 
 func (m *MongoDB) UpdatePassword(email, password string) error {
 	filter := bson.M{"email": email}
@@ -282,6 +352,7 @@ func (m *MongoDB) GetPotentialMatch(id string) (models.User, error) {
 		"location":               1,
 		"religion":               1,
 		"verification":           1,
+		"notification":           1,
 	}
 
 	database := m.client.Database(LADB)
@@ -589,6 +660,29 @@ func (m *MongoDB) AddReport(report models.Report) error {
 
 	database := m.client.Database(LADB)
 	collection := database.Collection(ReportCLX)
+	_, err := collection.InsertOne(ctx, data)
+
+	return err
+}
+
+// Feedback
+func (m *MongoDB) AddFeedback(feedback models.Feedback) error {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	_id := primitive.NewObjectID()
+
+	data := primitive.M{
+		"_id":       _id,
+		"id":        feedback.ID,
+		"status":    feedback.Status,
+		"content":   feedback.Content,
+		"sender_id": feedback.SenderID,
+		"timestamp": feedback.Timestamp,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(FeedbackCLX)
 	_, err := collection.InsertOne(ctx, data)
 
 	return err

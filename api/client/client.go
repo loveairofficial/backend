@@ -1,6 +1,7 @@
 package client
 
 import (
+	"loveair/api/client/middleware"
 	"loveair/core/rest"
 	"loveair/core/websocket/gorilla"
 	"loveair/log"
@@ -17,45 +18,49 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	client.Methods("PUT").Path("/reset-password").HandlerFunc(rest.HandlePasswordReset)
 	client.Methods("POST").Path("/sign-up").HandlerFunc(rest.SignUp)
 	client.Methods("POST").Path("/sign-in").HandlerFunc(rest.SignIn)
+	client.Methods("POST").Path("/reactivate-account").HandlerFunc(rest.ReactivateAccount)
 	client.Methods("GET").Path("/sign-out").HandlerFunc(rest.SignOut)
-	// client.Methods("GET").Path("/refresh").HandlerFunc(rest.Refresh)
-	// client.Methods("GET").Path("/get-stream-tkn").HandlerFunc(rest.GenerateStreamToken)
+	client.Methods("PUT").Path("/refresh").HandlerFunc(rest.Refresh)
 
-	//Websocket
+	//~ Websocket
 	soc := client.PathPrefix("/connect").Subrouter()
+	soc.Use(middleware.Authorization(secret, serviceLogger))
 	soc.Path("/{id}").HandlerFunc(socket.Connect)
 
-	// Onboarding
-	client.Methods("GET").Path("/get-stageID").HandlerFunc(rest.GetStage)
+	// ~ Onboarding
+	onboarding := client.PathPrefix("/onboarding").Subrouter()
+	onboarding.Use(middleware.Authorization(secret, serviceLogger))
 
-	client.Methods("POST").Path("/stage-one").HandlerFunc(rest.HandleStageOne)
-	client.Methods("GET").Path("/get-stage-one").HandlerFunc(rest.GetStageOne)
+	//Query
+	onboardingQuery := onboarding.PathPrefix("/query").Subrouter()
+	onboardingQuery.Methods("GET").Path("/get-stageID").HandlerFunc(rest.GetStage)
+	onboardingQuery.Methods("GET").Path("/get-stage-one").HandlerFunc(rest.GetStageOne)
+	onboardingQuery.Methods("GET").Path("/get-stage-two").HandlerFunc(rest.GetStageTwo)
+	onboardingQuery.Methods("GET").Path("/get-stage-three").HandlerFunc(rest.GetStageThree)
+	onboardingQuery.Methods("GET").Path("/get-stage-four").HandlerFunc(rest.GetStageFour)
+	onboardingQuery.Methods("GET").Path("/get-stage-five").HandlerFunc(rest.GetStageFive)
+	onboardingQuery.Methods("GET").Path("/get-stage-six").HandlerFunc(rest.GetStageSix)
 
-	client.Methods("POST").Path("/stage-two").HandlerFunc(rest.HandleStageTwo)
-	client.Methods("GET").Path("/get-stage-two").HandlerFunc(rest.GetStageTwo)
+	//Mutate
+	onboardingMutate := onboarding.PathPrefix("/mutate").Subrouter()
+	onboardingMutate.Methods("POST").Path("/stage-one").HandlerFunc(rest.HandleStageOne)
+	onboardingMutate.Methods("POST").Path("/stage-two").HandlerFunc(rest.HandleStageTwo)
+	onboardingMutate.Methods("POST").Path("/stage-three").HandlerFunc(rest.HandleStageThree)
+	onboardingMutate.Methods("POST").Path("/stage-four").HandlerFunc(rest.HandleStageFour)
+	onboardingMutate.Methods("POST").Path("/stage-five").HandlerFunc(rest.HandleStageFive)
+	onboardingMutate.Methods("POST").Path("/stage-six").HandlerFunc(rest.HandleStageSix)
+	onboardingMutate.Methods("POST").Path("/stage-completion").HandlerFunc(rest.HandleStageCompletion)
 
-	client.Methods("POST").Path("/stage-three").HandlerFunc(rest.HandleStageThree)
-	client.Methods("GET").Path("/get-stage-three").HandlerFunc(rest.GetStageThree)
-
-	client.Methods("POST").Path("/stage-four").HandlerFunc(rest.HandleStageFour)
-	client.Methods("GET").Path("/get-stage-four").HandlerFunc(rest.GetStageFour)
-
-	client.Methods("POST").Path("/stage-five").HandlerFunc(rest.HandleStageFive)
-	client.Methods("GET").Path("/get-stage-five").HandlerFunc(rest.GetStageFive)
-
-	client.Methods("POST").Path("/stage-six").HandlerFunc(rest.HandleStageSix)
-	client.Methods("GET").Path("/get-stage-six").HandlerFunc(rest.GetStageSix)
-
-	client.Methods("GET").Path("/stage-completion").HandlerFunc(rest.HandleStageCompletion)
-
-	// Uploads & signature
+	//~ Uploads & signature
 	sn := client.PathPrefix("/signature").Subrouter()
-	// sn.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	sn.Use(middleware.Authorization(secret, serviceLogger))
+
+	//Query
 	sn.Methods("GET", "OPTIONS").Path("/get").HandlerFunc(rest.GetSignature)
 
-	// ~ Preference
+	//~ Preference
 	preference := client.PathPrefix("/preference").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	preference.Use(middleware.Authorization(secret, serviceLogger))
 
 	//Query
 	preferenceQuery := preference.PathPrefix("/query").Subrouter()
@@ -66,41 +71,33 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	preferenceMutate.Methods("PUT").Path("/").HandlerFunc(rest.UpdatePreference)
 	// preferenceMutate.Methods("PUT").Path("/address").HandlerFunc(rest.UpdateAddress)
 
-	// ~ Potential Matches
+	//~ Potential Matches
 	potentialMatches := client.PathPrefix("/potential-matches").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	preference.Use(middleware.Authorization(secret, serviceLogger))
 
 	//Query
 	potentialMatchesQuery := potentialMatches.PathPrefix("/query").Subrouter()
 	potentialMatchesQuery.Methods("GET").Path("/").HandlerFunc(rest.GetPotentialMatches)
 
-	// ~ Match Call
-	// MatcheCall := client.PathPrefix("/match-call").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
-
-	//Mutate
-	// MatcheCallMutate := MatcheCall.PathPrefix("/mutate").Subrouter()
-	// MatcheCallMutate.Methods("POST").Path("/init").HandlerFunc(rest.InitMatcheCall)
-
-	// ~ Potential Matches
+	//~ Meet Requests
 	meetRequests := client.PathPrefix("/meet-requests").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	meetRequests.Use(middleware.Authorization(secret, serviceLogger))
 
 	//Query
 	meetRequestsQuery := meetRequests.PathPrefix("/query").Subrouter()
 	meetRequestsQuery.Methods("GET").Path("/").HandlerFunc(rest.GetMeetRequests)
 
-	// ~ Chats
+	//~ Chats
 	chats := client.PathPrefix("/chats").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	chats.Use(middleware.Authorization(secret, serviceLogger))
 
 	//Query
 	chatsQuery := chats.PathPrefix("/query").Subrouter()
 	chatsQuery.Methods("GET").Path("/").HandlerFunc(rest.GetChats)
 
-	// ~ Profile
+	//~ Profile
 	profile := client.PathPrefix("/profile").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
+	profile.Use(middleware.Authorization(secret, serviceLogger))
 
 	//Query
 	profileQuery := profile.PathPrefix("/query").Subrouter()
@@ -110,19 +107,16 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	//Mutate
 	profileMutate := profile.PathPrefix("/mutate").Subrouter()
 	profileMutate.Methods("PUT").Path("/").HandlerFunc(rest.UpdateLocation)
+	profileMutate.Methods("PUT").Path("/notification").HandlerFunc(rest.UpdateNotification)
 	profileMutate.Methods("PUT").Path("/updateProfile").HandlerFunc(rest.UpdateProfile)
 	profileMutate.Methods("PUT").Path("/update-account").HandlerFunc(rest.UpdateAccount)
+	profileMutate.Methods("PUT").Path("/update-password").HandlerFunc(rest.UpdatePassword)
+	profileMutate.Methods("PUT").Path("/deactivate").HandlerFunc(rest.DeactivateAccount)
 
-	// ~ Subscription
+	//~ Subscription
 	subscription := client.PathPrefix("/subscription").Subrouter()
-	// preference.Use(middleware.Authorization(secret, rest.DB, serviceLogger))
-
-	//Query
-	// profileQuery := subscription.PathPrefix("/query").Subrouter()
 
 	//Mutate
 	subscriptionMutate := subscription.PathPrefix("/mutate").Subrouter()
 	subscriptionMutate.Methods("POST").Path("/glassfy-webhook").HandlerFunc(rest.HandleGlassfyWebhook)
 }
-
-// https://www.loveair.co/clr/subscription/mutate/glassfy-webhook

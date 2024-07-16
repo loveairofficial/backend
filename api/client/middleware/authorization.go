@@ -1,16 +1,17 @@
 package middleware
 
 import (
-	"time"
+	"loveair/log"
+	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/rs/xid"
+	"github.com/gorilla/mux"
 )
 
-var (
-	accessTknExpiration  = 24 * time.Hour
-	refreshTknExpiration = 168 * time.Hour
-)
+// var (
+// 	accessTknExpiration  = 24 * time.Hour
+// 	refreshTknExpiration = 168 * time.Hour
+// )
 
 // Struct that will be encoded into a JWT
 // jwt.StandardClaims was added as an embedded type, to provide fields like expiry time.
@@ -18,6 +19,39 @@ type Claims struct {
 	Email string
 	DID   string
 	jwt.StandardClaims
+}
+
+func Authorization(secret string, serviceLogger log.SLoger) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var tk string
+
+			// Retrieve the Authorization header from the request
+			if tk = r.Header.Get("Authorization"); tk == "" {
+				// Retrieve the access tkn string from url for websocket
+				if tk = r.URL.Query().Get("access_token"); tk == "" {
+					http.Error(w, "access_token is not found in URL and Authorization header.", http.StatusUnauthorized)
+					serviceLogger.Log.Errorln("access_token is not found in URL and Authorization header.")
+					return
+				}
+			}
+
+			claim := &Claims{}
+			tkn, err := jwt.ParseWithClaims(tk, claim, func(token *jwt.Token) (interface{}, error) {
+				return []byte(secret), nil
+			})
+
+			if err == nil && tkn.Valid {
+				next.ServeHTTP(w, r)
+			} else {
+				// Its expired or tampered with, relogin.
+				http.Error(w, "Token Expired", http.StatusUnauthorized)
+				serviceLogger.Log.Errorln("Token Expired")
+				return
+			}
+
+		})
+	}
 }
 
 // func Authorization(secret string, database data.Interface, serviceLogger log.SLoger) mux.MiddlewareFunc {
@@ -209,11 +243,11 @@ type Claims struct {
 // 	return tknString, did, nil
 // }
 
-func generateUID() string {
-	// Generate unique ID.
-	uid := xid.New()
-	return uid.String()
-}
+// func generateUID() string {
+// 	// Generate unique ID.
+// 	uid := xid.New()
+// 	return uid.String()
+// }
 
 // func generateAccessTkn(duration time.Duration, email, secret string) (string, error) {
 // 	expirationTime := time.Now().Add(duration)

@@ -12,6 +12,7 @@ type Interface interface {
 
 	//Device
 	AddNewDevice(*models.Device, string) error
+	GetDevice(string, string) (*models.Device, error)
 	DeleteDevice(string, string) error
 
 	// Onboarding
@@ -40,9 +41,12 @@ type Interface interface {
 
 	//Profile
 	UpdateLocation(string, models.Location) error
+	UpdateNotification(string, models.Notification) error
 	UpdateProfile(string, models.User) error
 	UpdateAccount(string, models.User) error
 	UpdatePassword(string, string) error
+	DeactivateAccount(string, string) error
+	ReactivateAccount(string) error
 
 	// Preference
 	UpdatePreference(string, models.Preference, string, string, int) error
@@ -66,6 +70,9 @@ type Interface interface {
 
 	//Report
 	AddReport(models.Report) error
+
+	//Feedback
+	AddFeedback(models.Feedback) error
 
 	//Subscription
 	UpdateSubscription(string, string) error

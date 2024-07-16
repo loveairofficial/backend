@@ -12,6 +12,8 @@ type Interface interface {
 	UpdateUserLocation(string, float64, float64) error
 	UpdateProfile(string, models.User) error
 	UpdateAccount(string, bool) error
+	DeactivateAccount(string) error
+	ReactivateAccount(string) error
 
 	//Potential matches
 	GetPotentialMatches(string, *models.Preference) ([]models.User, error)
