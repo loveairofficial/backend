@@ -1346,6 +1346,25 @@ func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// ~ Config
+func (re *Rest) GetLatestStableBuildNumber(w http.ResponseWriter, r *http.Request) {
+
+	lsbn, err := re.dbase.GetLatestStableBuildNumber()
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Data: Data{
+			LatestStableBuildNumber: lsbn,
+		},
+	})
+}
+
 // CustomID
 // Price
 // ProductID

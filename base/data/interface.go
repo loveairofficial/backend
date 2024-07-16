@@ -77,4 +77,7 @@ type Interface interface {
 	//Subscription
 	UpdateSubscription(string, string) error
 	AddTransaction(models.WebhookPayload) error
+
+	//Config
+	GetLatestStableBuildNumber() (int, error)
 }

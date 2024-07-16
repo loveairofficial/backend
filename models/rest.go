@@ -220,3 +220,7 @@ type WebhookPayload struct {
 	Environment        string             `bson:"environment,omitempty" json:"environment,omitempty"`
 	Source             string             `bson:"source,omitempty" json:"source,omitempty"`
 }
+
+type Config struct {
+	Value int `bson:"value" json:"value"`
+}

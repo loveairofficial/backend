@@ -51,6 +51,7 @@ func (m *MongoDB) AddUser(usr *models.User) error {
 		"rose_count":   usr.RoseCount,
 		"religiom":     usr.Religion,
 		"subscription": usr.Subscription,
+		"notification": usr.Notification,
 	}
 
 	database := m.client.Database(LADB)
@@ -732,4 +733,25 @@ func (m *MongoDB) AddTransaction(payload models.WebhookPayload) error {
 	_, err := collection.InsertOne(ctx, data)
 
 	return err
+}
+
+// Config
+func (m *MongoDB) GetLatestStableBuildNumber() (int, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	// Create an instance of the struct
+	config := new(models.Config)
+
+	projection := bson.M{
+		"value": 1,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(ConfigCLX)
+
+	err := collection.FindOne(ctx, bson.M{"name": "latest_stable_build_number"},
+		options.FindOne().SetProjection(projection)).Decode(&config)
+
+	return config.Value, err
 }

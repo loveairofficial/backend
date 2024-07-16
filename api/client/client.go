@@ -119,4 +119,11 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	//Mutate
 	subscriptionMutate := subscription.PathPrefix("/mutate").Subrouter()
 	subscriptionMutate.Methods("POST").Path("/glassfy-webhook").HandlerFunc(rest.HandleGlassfyWebhook)
+
+	//~ Config
+	config := client.PathPrefix("/config").Subrouter()
+
+	//Query
+	configQuery := config.PathPrefix("/query").Subrouter()
+	configQuery.Methods("GET").Path("/latest-stable-build").HandlerFunc(rest.GetLatestStableBuildNumber)
 }

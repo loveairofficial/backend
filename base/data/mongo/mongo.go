@@ -17,6 +17,7 @@ const (
 	ReportCLX      = "ReportCLX"
 	FeedbackCLX    = "FeedbackCLX"
 	TransactionCLX = "TransactionCLX"
+	ConfigCLX      = "ConfigCLX"
 )
 
 type MongoDB struct {
