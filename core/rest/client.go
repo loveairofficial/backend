@@ -27,12 +27,10 @@ type TokenResponse struct {
 }
 
 func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
-	re.sLogger.Log.Warnln(1)
 	email := r.URL.Query().Get("email")
 
 	// Check if there is an already existing account with the email.
 	if err := re.dbase.VerifyEmailExist(email); err != mongo.ErrNoDocuments {
-		re.sLogger.Log.Warnln(2)
 		//login user
 		re.writeJSON(w, Response{
 			Status:     "200",
@@ -45,7 +43,6 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	// generate 4 digit pin
 	pin, err := GenerateRandomPin()
-	re.sLogger.Log.Warnln(3)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
@@ -54,7 +51,6 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	// cache it on redis
 	err = re.cbaseIf.SetPin(email, pin, time.Minute*10)
-	re.sLogger.Log.Warnln(4)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
@@ -63,14 +59,12 @@ func (re *Rest) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	// send pin to client via email
 	resStatus, err := re.emailIf.SendEmailVerificationPin(email, pin)
-	re.sLogger.Log.Warnln(5)
 	if err != nil || resStatus != 202 {
 		w.WriteHeader(http.StatusInternalServerError)
 		re.sLogger.Log.Errorln(err)
 		return
 	}
 
-	re.sLogger.Log.Warnln(6)
 	re.writeJSON(w, Response{
 		Status:     "200",
 		StatusCode: http.StatusOK,

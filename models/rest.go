@@ -46,6 +46,7 @@ type User struct {
 	JoinedAt            time.Time  `json:"joinedAt" bson:"joined_at"`
 	Preference          Preference `json:"preference" bson:"preference"`
 	Presence            string     `json:"presence" bson:"presence"`
+	LastSeen            time.Time  `json:"lastSeen" bson:"last_seen"`
 	MutualInterestCount int64      `json:"mutualInterestCount"`
 	MutualInterest      []string   `json:"mutualInterest"`
 	ExclusiveInterest   []string   `json:"exclusiveInterest"`

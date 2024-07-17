@@ -324,6 +324,7 @@ func (m *MongoDB) HydratePotentialMatches(ids []string, usrs []models.User) ([]m
 
 		if usr, ok := GetUserByID(usrs, user.ID); ok {
 			user.Presence = usr.Presence
+			user.LastSeen = usr.LastSeen
 			user.MutualInterest = usr.MutualInterest
 			user.ExclusiveInterest = usr.ExclusiveInterest
 		}
@@ -416,6 +417,7 @@ func (m *MongoDB) HydrateMeetRequests(ids []string, mrs []models.MeetRequest) ([
 		mr, ok := GetMrByID(mrs, user.ID)
 		if ok {
 			mr.User = user
+			mr.User.LastSeen = mr.LastSeen
 			mr.User.Presence = mr.Presence
 		}
 

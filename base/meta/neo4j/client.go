@@ -376,7 +376,7 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
 		WHERE NOT (n)-[:INTERESTED_IN]->(oi)
 		WITH on, mutualInterests, COLLECT(oi.name) AS exclusiveInterests
-		RETURN on.id AS id, on.presence AS presence, mutualInterests, exclusiveInterests
+		RETURN on.id AS id, on.last_seen AS lastSeen, on.presence AS presence, mutualInterests, exclusiveInterests
 		LIMIT 5`, baseQuery, conditionString)
 
 	// Execute the query
@@ -404,6 +404,8 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		miI, _ := record.Get("mutualInterests")
 		mi, _ := miI.([]interface{})
 		potentialMatch.MutualInterest = ConvertInterfaceToStringSlice(mi)
+		lsI, _ := record.Get("lastSeen")
+		potentialMatch.LastSeen, _ = lsI.(time.Time)
 		prI, _ := record.Get("presence")
 		potentialMatch.Presence, _ = prI.(string)
 		eiI, _ := record.Get("exclusiveInterests")
@@ -416,7 +418,7 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 	return potentialMatches, err
 }
 
-func (neo *Neo4j) UpdateUserPresence(id, status string) error {
+func (neo *Neo4j) UpdateUserPresence(id, status string, d time.Time) error {
 	ctx, cancel := getContext()
 	defer cancel()
 
@@ -424,15 +426,15 @@ func (neo *Neo4j) UpdateUserPresence(id, status string) error {
 	defer session.Close(ctx)
 
 	param := map[string]interface{}{
-		"id":       id,
-		"presence": status,
+		"id":        id,
+		"presence":  status,
+		"last_seen": d,
 	}
 
 	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
-		"MATCH (n:USER {id: $id}) SET n.presence = $presence",
+		"MATCH (n:USER {id: $id}) SET n.presence = $presence, n.last_seen = $last_seen",
 		param,
 		neo4j.EagerResultTransformer)
-
 	return err
 }
 
@@ -539,7 +541,7 @@ func (neo *Neo4j) GetMeetRequests(id string) ([]models.MeetRequest, error) {
 	query := `
 		MATCH (n:USER {id: $id})
 		MATCH (on)-[r:REQUESTED_TO_MEET]->(n)
-		RETURN  r.id AS mrId, r.timestamp AS timestamp, r.compliment AS compliment, r.rose AS rose, on.id AS userID, on.presence AS presence
+		RETURN  r.id AS mrId, r.timestamp AS timestamp, r.compliment AS compliment, r.rose AS rose, on.id AS userID, on.last_seen AS lastSeen, on.presence AS presence
 		`
 
 	// Execute the query
@@ -576,6 +578,10 @@ func (neo *Neo4j) GetMeetRequests(id string) ([]models.MeetRequest, error) {
 
 		userIDI, _ := record.Get("userID")
 		meetRequest.User.ID, _ = userIDI.(string)
+
+		// because we are using 2 dbs during hydration we need to keep some info somewhere else and bring them to approprite location when possible.
+		lastSeenI, _ := record.Get("lastSeen")
+		meetRequest.LastSeen, _ = lastSeenI.(time.Time)
 
 		presenceI, _ := record.Get("presence")
 		meetRequest.Presence, _ = presenceI.(string)

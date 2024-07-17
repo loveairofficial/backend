@@ -17,7 +17,7 @@ type Interface interface {
 
 	//Potential matches
 	GetPotentialMatches(string, *models.Preference) ([]models.User, error)
-	UpdateUserPresence(string, string) error
+	UpdateUserPresence(string, string, time.Time) error
 	AddRequestedToMeetRelationship(*models.MeetRequest) error
 	AddMatchRelationship(time.Time, string, string) error
 	AddPassRelationship(time.Time, string, string) error

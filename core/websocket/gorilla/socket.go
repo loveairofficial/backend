@@ -92,7 +92,7 @@ func (s *Socket) Daemon() {
 				s.clients.Set(client.ID, client)
 
 				//add user presence in meta database as online.
-				err := s.mbase.UpdateUserPresence(client.ID, "Online")
+				err := s.mbase.UpdateUserPresence(client.ID, "Online", time.Time{})
 				if err != nil {
 					s.sLogger.Log.Errorln(err)
 				}
@@ -127,7 +127,7 @@ func (s *Socket) Daemon() {
 				s.clients.Remove(client.ID)
 
 				//add user presence in meta database as offline.
-				err := s.mbase.UpdateUserPresence(client.ID, "Offline")
+				err := s.mbase.UpdateUserPresence(client.ID, "Offline", time.Now().UTC())
 				if err != nil {
 					s.sLogger.Log.Errorln(err)
 				}

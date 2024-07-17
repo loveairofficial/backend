@@ -1,6 +1,8 @@
 package redis
 
-import "time"
+import (
+	"time"
+)
 
 func (r *Redis) SetPin(key string, pin string, d time.Duration) error {
 	ctx, cancel := getContext()

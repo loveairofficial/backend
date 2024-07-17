@@ -56,6 +56,7 @@ type MeetRequest struct {
 	Timestamp       time.Time `json:"timestamp"`
 	CallID          string    `json:"callID"`
 	Presence        string    `json:"presence"`
+	LastSeen        time.Time `json:"lastSeen" bson:"last_seen"`
 	User            User      `json:"user"`
 	Compliment      string    `json:"compliment"`
 	Rose            bool      `json:"rose"`
