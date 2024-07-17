@@ -223,5 +223,8 @@ type WebhookPayload struct {
 }
 
 type Config struct {
-	Value int `bson:"value" json:"value"`
+	Value           int    `bson:"value" json:"value"`
+	Terms           string `bson:"terms" json:"terms"`
+	PrivacyPolicy   string `bson:"privacy_policy" json:"privacyPolicy"`
+	HowLoveairWorks string `bson:"how_loveair_works" json:"howLoveairWorks"`
 }

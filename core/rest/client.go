@@ -1365,6 +1365,60 @@ func (re *Rest) GetLatestStableBuildNumber(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+func (re *Rest) GetTerms(w http.ResponseWriter, r *http.Request) {
+
+	terms, err := re.dbase.GetTerms()
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Data: Data{
+			Terms: terms,
+		},
+	})
+}
+
+func (re *Rest) GetPrivacyPolicy(w http.ResponseWriter, r *http.Request) {
+
+	pp, err := re.dbase.GetPrivacyPolicy()
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Data: Data{
+			PrivacyPolicy: pp,
+		},
+	})
+}
+
+func (re *Rest) GetHowLoveairWorks(w http.ResponseWriter, r *http.Request) {
+
+	howLoveairWorks, err := re.dbase.GetHowLoveairWorks()
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	re.writeJSON(w, Response{
+		Status:     "200",
+		StatusCode: http.StatusOK,
+		Data: Data{
+			HowLoveairWorks: howLoveairWorks,
+		},
+	})
+}
+
 // CustomID
 // Price
 // ProductID

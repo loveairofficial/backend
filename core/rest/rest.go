@@ -72,6 +72,9 @@ type Data struct {
 	User                    models.User          `json:"user"`
 	ProfilePicture          models.Photo         `json:"profilePicture"`
 	LatestStableBuildNumber int                  `json:"latestStableBuildNumber"`
+	Terms                   string               `json:"terms"`
+	PrivacyPolicy           string               `json:"privacy_policy"`
+	HowLoveairWorks         string               `json:"how_loveair_works"`
 }
 
 type Rest struct {

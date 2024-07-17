@@ -757,3 +757,63 @@ func (m *MongoDB) GetLatestStableBuildNumber() (int, error) {
 
 	return config.Value, err
 }
+
+func (m *MongoDB) GetTerms() (string, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	// Create an instance of the struct
+	config := new(models.Config)
+
+	projection := bson.M{
+		"terms": 1,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(ConfigCLX)
+
+	err := collection.FindOne(ctx, bson.M{"name": "terms"},
+		options.FindOne().SetProjection(projection)).Decode(&config)
+
+	return config.Terms, err
+}
+
+func (m *MongoDB) GetPrivacyPolicy() (string, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	// Create an instance of the struct
+	config := new(models.Config)
+
+	projection := bson.M{
+		"privacy_policy": 1,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(ConfigCLX)
+
+	err := collection.FindOne(ctx, bson.M{"name": "privacy_policy"},
+		options.FindOne().SetProjection(projection)).Decode(&config)
+
+	return config.PrivacyPolicy, err
+}
+
+func (m *MongoDB) GetHowLoveairWorks() (string, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	// Create an instance of the struct
+	config := new(models.Config)
+
+	projection := bson.M{
+		"how_loveair_works": 1,
+	}
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(ConfigCLX)
+
+	err := collection.FindOne(ctx, bson.M{"name": "how_loveair_works"},
+		options.FindOne().SetProjection(projection)).Decode(&config)
+
+	return config.HowLoveairWorks, err
+}

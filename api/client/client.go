@@ -126,4 +126,8 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	//Query
 	configQuery := config.PathPrefix("/query").Subrouter()
 	configQuery.Methods("GET").Path("/latest-stable-build").HandlerFunc(rest.GetLatestStableBuildNumber)
+	configQuery.Methods("GET").Path("/terms").HandlerFunc(rest.GetTerms)
+
+	configQuery.Methods("GET").Path("/privacy-policy").HandlerFunc(rest.GetPrivacyPolicy)
+	configQuery.Methods("GET").Path("/how-loveair-works").HandlerFunc(rest.GetHowLoveairWorks)
 }

@@ -80,4 +80,7 @@ type Interface interface {
 
 	//Config
 	GetLatestStableBuildNumber() (int, error)
+	GetTerms() (string, error)
+	GetPrivacyPolicy() (string, error)
+	GetHowLoveairWorks() (string, error)
 }
