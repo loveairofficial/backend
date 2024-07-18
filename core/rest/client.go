@@ -1296,7 +1296,24 @@ func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
 
 	//set user to premium and boost user in meta db and store tx in tx clx
 	case 5002:
-		// 	fmt.Println("Subscription Restarted event")
+		fmt.Println("Subscription Restarted event")
+		err := re.dbase.UpdateSubscription(payload.CustomID, "Premium")
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.mbase.UpdateUserBoost(payload.CustomID, 10)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.dbase.AddTransaction(payload)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
 	case 5003:
 		//set user to premium and boost user in meta db and store tx in tx clx
 		fmt.Println("Subscription automatically renewed")

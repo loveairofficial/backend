@@ -710,8 +710,6 @@ func (m *MongoDB) AddTransaction(payload models.WebhookPayload) error {
 
 	data := primitive.M{
 		"_id":                   _id,
-		"id":                    payload.ID,
-		"event_id":              payload.EventID,
 		"type":                  payload.Type,
 		"expire_date_ms":        payload.ExpireDateMS,
 		"auto_renew_product_id": payload.AutoRenewProductID,
@@ -728,6 +726,7 @@ func (m *MongoDB) AddTransaction(payload models.WebhookPayload) error {
 		"estimated":             payload.Estimated,
 		"environment":           payload.Environment,
 		"source":                payload.Source,
+		"auto_renew_status":     payload.AutoRenewStatus,
 	}
 
 	database := m.client.Database(LADB)

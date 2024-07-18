@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type User struct {
@@ -202,24 +200,23 @@ type Feedback struct {
 // }
 
 type WebhookPayload struct {
-	ID                 primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
-	EventID            string             `bson:"event_id,omitempty" json:"event_id,omitempty"`
-	Type               int                `bson:"type" json:"type"`
-	ExpireDateMS       int64              `bson:"expire_date_ms" json:"expire_date_ms"`
-	AutoRenewProductID string             `bson:"auto_renew_product_id,omitempty" json:"auto_renew_product_id,omitempty"`
-	ProductID          string             `bson:"product_id,omitempty" json:"product_id,omitempty"`
-	TransactionID      string             `bson:"transaction_id,omitempty" json:"transaction_id,omitempty"`
-	SubscriberID       string             `bson:"subscriber_id,omitempty" json:"subscriber_id,omitempty"`
-	CustomID           string             `bson:"custom_id,omitempty" json:"custom_id,omitempty"`
-	DateMS             int64              `bson:"date_ms,omitempty" json:"date_ms,omitempty"`
-	Price              float64            `bson:"price,omitempty" json:"price,omitempty"`
-	PriceUSD           float64            `bson:"price_usd,omitempty" json:"price_usd,omitempty"`
-	CurrencyCode       string             `bson:"currency_code,omitempty" json:"currency_code,omitempty"`
-	CountryCode        string             `bson:"country_code,omitempty" json:"country_code,omitempty"`
-	Store              string             `bson:"store,omitempty" json:"store,omitempty"`
-	Estimated          int                `bson:"estimated,omitempty" json:"estimated,omitempty"`
-	Environment        string             `bson:"environment,omitempty" json:"environment,omitempty"`
-	Source             string             `bson:"source,omitempty" json:"source,omitempty"`
+	Type               int     `bson:"type" json:"type"`
+	ExpireDateMS       int64   `bson:"expire_date_ms" json:"expire_date_ms"`
+	AutoRenewProductID string  `bson:"auto_renew_product_id,omitempty" json:"auto_renew_product_id,omitempty"`
+	ProductID          string  `bson:"product_id,omitempty" json:"productid,omitempty"`
+	TransactionID      string  `bson:"transaction_id,omitempty" json:"transaction_id,omitempty"`
+	SubscriberID       string  `bson:"subscriber_id,omitempty" json:"subscriberid,omitempty"`
+	CustomID           string  `bson:"custom_id,omitempty" json:"customid,omitempty"`
+	DateMS             int64   `bson:"date_ms,omitempty" json:"date_ms,omitempty"`
+	Price              float64 `bson:"price,omitempty" json:"price,omitempty"`
+	PriceUSD           float64 `bson:"price_usd,omitempty" json:"price_usd,omitempty"`
+	CurrencyCode       string  `bson:"currency_code,omitempty" json:"currency_code,omitempty"`
+	CountryCode        string  `bson:"country_code,omitempty" json:"country_code,omitempty"`
+	Store              string  `bson:"store,omitempty" json:"store,omitempty"`
+	Estimated          int     `bson:"estimated,omitempty" json:"estimated,omitempty"`
+	Environment        string  `bson:"environment,omitempty" json:"environment,omitempty"`
+	Source             string  `bson:"source,omitempty" json:"source,omitempty"`
+	AutoRenewStatus    bool    `bson:"auto_renew_status,omitempty" json:"auto_renew_status,omitempty"`
 }
 
 type Config struct {
