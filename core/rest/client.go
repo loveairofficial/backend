@@ -1273,6 +1273,7 @@ func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
 	// Handle the webhook payload
 	fmt.Printf("Received webhook: %+v\n", payload)
 
+	// Process event type
 	switch payload.Type {
 	case 5001:
 		fmt.Println("Subscription Initial Buy event")
@@ -1337,11 +1338,22 @@ func (re *Rest) HandleGlassfyWebhook(w http.ResponseWriter, r *http.Request) {
 			re.sLogger.Log.Errorln(err)
 			return
 		}
-		// set user to free and remove boost from meta bd
-		// case 5005:
-		// 	fmt.Println("Subscription Did Change Renewal Status event")
-		// case 5006:
-		// 	fmt.Println("User is in Billing Retry Period event")
+	// set user to free and remove boost from meta bd
+	// case 5005:
+	// 	fmt.Println("Subscription Did Change Renewal Status event")
+	case 5006:
+		fmt.Println("User is in Billing Retry Period event")
+		err := re.dbase.UpdateSubscription(payload.CustomID, "Free")
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
+
+		err = re.mbase.UpdateUserBoost(payload.CustomID, 0)
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			return
+		}
 		// case 5007:
 		// 	fmt.Println("Subscription Product Change event")
 		// case 5008:
