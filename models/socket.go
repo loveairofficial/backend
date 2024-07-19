@@ -13,7 +13,6 @@ type Incomming struct {
 
 type Client struct {
 	ID         string
-	FirstName  string
 	PushTknIDs []string
 	Conn       *websocket.Conn
 	SendCh     chan *Outgoing
@@ -39,6 +38,7 @@ type Data struct {
 	UserID         string      `json:"userID"`
 	RecipientID    string      `json:"recipientID"`
 	SenderID       string      `json:"senderID"`
+	FirstName      string      `json:"firstName"`
 	Compliment     string      `json:"compliment"`
 	Rose           bool        `json:"rose"`
 	MutualInterest []string    `json:"mutualInterest"`

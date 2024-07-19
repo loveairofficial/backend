@@ -32,7 +32,7 @@ func (s *Socket) Connect(w http.ResponseWriter, r *http.Request) {
 	go s.reader(conn, receiveCh, errCh)
 	go s.writer(conn, sendCh, errCh)
 
-	pIDs, name, err := s.dbase.GetUserPushNotificationIDs(id)
+	pIDs, err := s.dbase.GetUserPushNotificationIDs(id)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return
@@ -40,7 +40,6 @@ func (s *Socket) Connect(w http.ResponseWriter, r *http.Request) {
 
 	Client := &models.Client{
 		ID:         id,
-		FirstName:  name,
 		PushTknIDs: pIDs,
 		Conn:       conn,
 		SendCh:     sendCh,
@@ -217,24 +216,21 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 
 	//~ Send Push Notification
 	var pIDs []string
-	var firstName string
 
 	if rec, ok := s.clients.Get(pl.RecipientID); ok {
 		pIDs = rec.PushTknIDs
-		firstName = rec.FirstName
 
 	} else {
-		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
+		ids, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
 		if err != nil {
 			s.sLogger.Log.Errorln(err)
 			return
 		}
 
 		pIDs = ids
-		firstName = name
 	}
 
-	err = s.pushIf.SendPushNotification(firstName, "Wants to meet!", pIDs)
+	err = s.pushIf.SendPushNotification(pl.FirstName, "Wants to meet!", pIDs)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return
@@ -261,24 +257,21 @@ func (s *Socket) OfflineMeetRequest(pl *models.Data) {
 
 	//~ Send Push Notification
 	var pIDs []string
-	var firstName string
 
 	if rec, ok := s.clients.Get(pl.RecipientID); ok {
 		pIDs = rec.PushTknIDs
-		firstName = rec.FirstName
 
 	} else {
-		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
+		ids, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
 		if err != nil {
 			s.sLogger.Log.Errorln(err)
 			return
 		}
 
 		pIDs = ids
-		firstName = name
 	}
 
-	err = s.pushIf.SendPushNotification(firstName, "Wants to meet!", pIDs)
+	err = s.pushIf.SendPushNotification(pl.FirstName, "Wants to meet!", pIDs)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return
@@ -340,24 +333,21 @@ func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) 
 
 	//~ Send Push Notification
 	var pIDs []string
-	var firstName string
 
 	if rec, ok := s.clients.Get(pl.MeetRequest.SenderID); ok {
 		pIDs = rec.PushTknIDs
-		firstName = rec.FirstName
 
 	} else {
-		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.MeetRequest.SenderID)
+		ids, err := s.dbase.GetUserPushNotificationIDs(pl.MeetRequest.SenderID)
 		if err != nil {
 			s.sLogger.Log.Errorln(err)
 			return
 		}
 
 		pIDs = ids
-		firstName = name
 	}
 
-	err = s.pushIf.SendPushNotification(firstName, "Ready to meet!", pIDs)
+	err = s.pushIf.SendPushNotification(pl.FirstName, "Ready to meet!", pIDs)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return
@@ -643,24 +633,21 @@ func (s *Socket) newMessage(pl *models.Data) {
 
 	//~ Send Push Notification
 	var pIDs []string
-	var firstName string
 
 	if rec, ok := s.clients.Get(pl.Message.RecieverID); ok {
 		pIDs = rec.PushTknIDs
-		firstName = rec.FirstName
 
 	} else {
-		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.Message.RecieverID)
+		ids, err := s.dbase.GetUserPushNotificationIDs(pl.Message.RecieverID)
 		if err != nil {
 			s.sLogger.Log.Errorln(err)
 			return
 		}
 
 		pIDs = ids
-		firstName = name
 	}
 
-	err := s.pushIf.SendPushNotification(firstName, pl.Message.Content, pIDs)
+	err := s.pushIf.SendPushNotification(pl.FirstName, pl.Message.Content, pIDs)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return

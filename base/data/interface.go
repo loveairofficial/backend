@@ -14,7 +14,7 @@ type Interface interface {
 	AddNewDevice(*models.Device, string) error
 	GetDevice(string, string) (*models.Device, error)
 	DeleteDevice(string, string) error
-	GetUserPushNotificationIDs(id string) ([]string, string, error)
+	GetUserPushNotificationIDs(id string) ([]string, error)
 
 	// Onboarding
 	GetStage(string) (int, error)

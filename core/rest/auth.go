@@ -102,11 +102,11 @@ func (re *Rest) Refresh(w http.ResponseWriter, r *http.Request) {
 
 		device.DeviceID = did
 
-		// add new device to database.
-		err = re.dbase.AddNewDevice(device, claim.Email)
-		if err != nil {
-			re.sLogger.Log.Errorln(err)
-		}
+		// add new device to database. //! do not add new device old device is still valid.
+		// err = re.dbase.AddNewDevice(device, claim.Email)
+		// if err != nil {
+		// 	re.sLogger.Log.Errorln(err)
+		// }
 
 		//~ Generate jwt stream token
 		//! do not hardcode credentials!!!

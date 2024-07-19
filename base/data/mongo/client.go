@@ -135,13 +135,12 @@ func (m *MongoDB) GetDevice(email, did string) (*models.Device, error) {
 	return &creds.Devices[0], nil
 }
 
-func (m *MongoDB) GetUserPushNotificationIDs(id string) ([]string, string, error) {
+func (m *MongoDB) GetUserPushNotificationIDs(id string) ([]string, error) {
 	ctx, cancel := getContext()
 	defer cancel()
 
 	projection := bson.M{
-		"first_name": 1,
-		"devices":    1,
+		"devices": 1,
 	}
 
 	filter := bson.M{
@@ -161,7 +160,7 @@ func (m *MongoDB) GetUserPushNotificationIDs(id string) ([]string, string, error
 		pIDs = append(pIDs, device.PushTkn)
 	}
 
-	return pIDs, creds.FirstName, err
+	return pIDs, err
 }
 
 func (m *MongoDB) DeleteDevice(email, did string) error {
