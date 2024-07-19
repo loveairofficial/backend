@@ -28,8 +28,8 @@ func (ep *ExpoPush) SendPushNotification(title, body string, pIDs []string) erro
 	_, err = ep.client.Publish(
 		&expo.PushMessage{
 			To:       pushTkns,
-			Title:    "Loveair",
-			Body:     "New message",
+			Title:    title,
+			Body:     body,
 			Data:     map[string]string{"withSome": "data"},
 			Sound:    "default",
 			Priority: expo.DefaultPriority,
