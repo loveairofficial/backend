@@ -589,7 +589,7 @@ func (re *Rest) SignOut(w http.ResponseWriter, r *http.Request) {
 	var rtk string
 
 	// Retrieve the Authorization header from the request
-	if rtk = r.Header.Get("Authorization"); rtk == "" {
+	if rtk = r.Header.Get("Refresh-Authorization"); rtk == "" {
 		http.Error(w, "access_token is not found in Authorization header.", http.StatusUnauthorized)
 		return
 	}

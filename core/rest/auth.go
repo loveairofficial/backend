@@ -27,7 +27,7 @@ func (re *Rest) Refresh(w http.ResponseWriter, r *http.Request) {
 	var tk string
 
 	// Retrieve the Authorization header from the request
-	if tk = r.Header.Get("Authorization"); tk == "" {
+	if tk = r.Header.Get("Refresh-Authorization"); tk == "" {
 		http.Error(w, "refresh_token is not found in Authorization header.", http.StatusUnauthorized)
 		re.sLogger.Log.Errorln("refresh_token is not found in Authorization header.")
 		return
