@@ -12,9 +12,11 @@ type Incomming struct {
 }
 
 type Client struct {
-	ID     string
-	Conn   *websocket.Conn
-	SendCh chan *Outgoing
+	ID         string
+	FirstName  string
+	PushTknIDs []string
+	Conn       *websocket.Conn
+	SendCh     chan *Outgoing
 }
 
 type Outgoing struct {
@@ -48,22 +50,25 @@ type Data struct {
 	Note           string      `json:"note"`
 	Report         Report      `json:"report"`
 	Feedback       Feedback    `json:"feedback"`
+	Context        string      `json:"context"`
 }
 
 type MeetRequest struct {
-	ID              string    `json:"id"`
-	Status          string    `json:"status"` //eg, Mtached, Passed, Undefined.
-	Timestamp       time.Time `json:"timestamp"`
-	CallID          string    `json:"callID"`
-	Presence        string    `json:"presence"`
-	LastSeen        time.Time `json:"lastSeen" bson:"last_seen"`
-	User            User      `json:"user"`
-	Compliment      string    `json:"compliment"`
-	Rose            bool      `json:"rose"`
-	SenderID        string    `json:"senderID"`
-	RecipientID     string    `json:"recipientID"`
-	SenderStatus    string    `json:"senderStatus"`
-	RecipientStatus string    `json:"recipientStatus"`
+	ID                string    `json:"id"`
+	Status            string    `json:"status"` //eg, Mtached, Passed, Undefined.
+	Timestamp         time.Time `json:"timestamp"`
+	CallID            string    `json:"callID"`
+	Presence          string    `json:"presence"`
+	LastSeen          time.Time `json:"lastSeen" bson:"last_seen"`
+	User              User      `json:"user"`
+	Compliment        string    `json:"compliment"`
+	Rose              bool      `json:"rose"`
+	SenderID          string    `json:"senderID"`
+	RecipientID       string    `json:"recipientID"`
+	SenderStatus      string    `json:"senderStatus"`
+	RecipientStatus   string    `json:"recipientStatus"`
+	MutualInterest    []string  `json:"mutualInterest"`
+	ExclusiveInterest []string  `json:"exclusiveInterest"`
 }
 
 type Chat struct {

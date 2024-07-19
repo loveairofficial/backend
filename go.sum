@@ -54,6 +54,8 @@ github.com/neo4j/neo4j-go-driver/v5 v5.20.0 h1:XnoAi6g6XRkX+wxWa3yM+f7PT2VUkGQfB
 github.com/neo4j/neo4j-go-driver/v5 v5.20.0/go.mod h1:Vff8OwT7QpLm7L2yYr85XNWe9Rbqlbeb9asNXJTHO4k=
 github.com/nitishm/go-rejson/v4 v4.2.0 h1:nUsQVq92KmRtDzz8RHbaG40VKsUZWzYfXavx+wnVP+k=
 github.com/nitishm/go-rejson/v4 v4.2.0/go.mod h1:m/I9wZpt53OFWhY+uaBFyrbPFKctKaJ5qQnuORQ4LuQ=
+github.com/oliveroneill/exponent-server-sdk-golang v0.0.0-20210823140141-d050598be512 h1:/ZSmjwl1inqsiHMhn+sPlEtSHdVTf+TH3LNGGdMQ/vA=
+github.com/oliveroneill/exponent-server-sdk-golang v0.0.0-20210823140141-d050598be512/go.mod h1:Isv/48UnAjtxS8FD80Bito3ZJqZRyIMxKARIEITfW4k=
 github.com/orcaman/concurrent-map/v2 v2.0.1 h1:jOJ5Pg2w1oeB6PeDurIYf6k9PQ+aTITr/6lP/L/zp6c=
 github.com/orcaman/concurrent-map/v2 v2.0.1/go.mod h1:9Eq3TG2oBe5FirmYWQfYO5iH1q0Jv47PLaNK++uCdOM=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

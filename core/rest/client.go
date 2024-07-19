@@ -18,6 +18,7 @@ import (
 	"github.com/gorilla/schema"
 
 	// "github.com/houseme/mobiledetect/ua"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -265,6 +266,9 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 		Push:  true,
 	}
 
+	usr.FreeTrialCount = 3
+	usr.FreeTrialCountIssueTimestamp = time.Now().UTC()
+
 	// Store credentials to database.
 	err = re.dbase.AddUser(usr)
 	if err != nil {
@@ -391,7 +395,6 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 			re.sLogger.Log.Infoln("Account is deactivated by admin")
 			return
 		}
-
 	}
 
 	// Generate jwt access token.
@@ -839,7 +842,7 @@ func (re *Rest) GetMeetRequests(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
+		fmt.Println(HydratedMrs[0])
 		re.writeJSON(w, Response{
 			Status:     "200",
 			StatusCode: http.StatusOK,
@@ -876,6 +879,65 @@ func getRecipientIDs(chats []models.Chat, userID string) []string {
 
 	}
 	return recipientIDs
+}
+
+func (re *Rest) CheckFreeTrialAvailability(w http.ResponseWriter, r *http.Request) {
+	email := r.URL.Query().Get("email")
+
+	creds, err := re.dbase.GetCredential(email)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	duration := time.Now().UTC().Sub(creds.FreeTrialCountIssueTimestamp)
+
+	if duration > 24*time.Hour {
+		// Reset
+		err := re.dbase.UpdateFreeTrialCount(email, 4, time.Now().UTC())
+		if err != nil {
+			re.sLogger.Log.Errorln(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		re.writeJSON(w, Response{
+			Status:     "200",
+			StatusCode: http.StatusOK,
+			Data: Data{
+				FreeTrialAvailability: true,
+			},
+		})
+		return
+	} else {
+		if creds.FreeTrialCount > 0 {
+			err := re.dbase.UpdateFreeTrialCount(email, creds.FreeTrialCount-1, creds.FreeTrialCountIssueTimestamp)
+			if err != nil {
+				re.sLogger.Log.Errorln(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			re.writeJSON(w, Response{
+				Status:     "200",
+				StatusCode: http.StatusOK,
+				Data: Data{
+					FreeTrialAvailability: true,
+				},
+			})
+			return
+		} else {
+			re.writeJSON(w, Response{
+				Status:     "200",
+				StatusCode: http.StatusOK,
+				Data: Data{
+					FreeTrialAvailability: false,
+				},
+			})
+			return
+		}
+	}
 }
 
 // this returns all the ids of the other party of the chats for hydration, ut also takes note of chat with only the user due to unmatching and it returns them too.

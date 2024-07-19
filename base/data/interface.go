@@ -14,6 +14,7 @@ type Interface interface {
 	AddNewDevice(*models.Device, string) error
 	GetDevice(string, string) (*models.Device, error)
 	DeleteDevice(string, string) error
+	GetUserPushNotificationIDs(id string) ([]string, string, error)
 
 	// Onboarding
 	GetStage(string) (int, error)
@@ -77,6 +78,8 @@ type Interface interface {
 	//Subscription
 	UpdateSubscription(string, string) error
 	AddTransaction(models.WebhookPayload) error
+
+	UpdateFreeTrialCount(string, int, time.Time) error
 
 	//Config
 	GetLatestStableBuildNumber() (int, error)

@@ -86,6 +86,7 @@ func Route(client *mux.Router, rest *rest.Rest, secret string, socket *gorilla.S
 	//Query
 	meetRequestsQuery := meetRequests.PathPrefix("/query").Subrouter()
 	meetRequestsQuery.Methods("GET").Path("/").HandlerFunc(rest.GetMeetRequests)
+	meetRequestsQuery.Methods("GET").Path("/check-free-trial-availability").HandlerFunc(rest.CheckFreeTrialAvailability)
 
 	//~ Chats
 	chats := client.PathPrefix("/chats").Subrouter()

@@ -32,10 +32,18 @@ func (s *Socket) Connect(w http.ResponseWriter, r *http.Request) {
 	go s.reader(conn, receiveCh, errCh)
 	go s.writer(conn, sendCh, errCh)
 
+	pIDs, name, err := s.dbase.GetUserPushNotificationIDs(id)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
+
 	Client := &models.Client{
-		ID:     id,
-		Conn:   conn,
-		SendCh: sendCh,
+		ID:         id,
+		FirstName:  name,
+		PushTknIDs: pIDs,
+		Conn:       conn,
+		SendCh:     sendCh,
 	}
 
 	s.join <- Client
@@ -85,7 +93,8 @@ func (s *Socket) delegate(receiveCh chan models.Incomming, sendCh chan *models.O
 				s.report(&pl.Data)
 			case "feedback":
 				s.feedback(&pl.Data)
-
+			case "presence-status-update":
+				s.presenceStatusUpdate(&pl.Data, sendCh)
 			default:
 				s.sLogger.Log.Errorln("Invalid Tag")
 			}
@@ -99,8 +108,7 @@ func (s *Socket) delegate(receiveCh chan models.Incomming, sendCh chan *models.O
 	}
 }
 
-//~ Meet request.
-
+// ~ Meet request.
 func (s *Socket) ClientConnectedToThisInstance(recieverID string, og *models.Outgoing, ackChan chan bool) {
 	defer close(ackChan)
 	client, ok := s.clients.Get(recieverID)
@@ -172,6 +180,8 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 	mr.SenderID = pl.SenderID
 	mr.RecipientID = pl.RecipientID
 
+	fmt.Println("----------------------------------", pl.Rose)
+
 	og = &models.Outgoing{
 		OutPayload: models.Payload{
 			Tag: "meet-request",
@@ -189,7 +199,7 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 		s.sLogger.Log.Infoln("user is not connected on this instance")
 	}
 
-	// Cache the meet request in redis.
+	//~ Cache the meet request in redis.
 	mr.SenderStatus = "undefined"
 	mr.RecipientStatus = "undefined"
 
@@ -204,10 +214,34 @@ func (s *Socket) initMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
 		s.sLogger.Log.Errorln(err)
 		return
 	}
+
+	//~ Send Push Notification
+	var pIDs []string
+	var firstName string
+
+	if rec, ok := s.clients.Get(pl.RecipientID); ok {
+		pIDs = rec.PushTknIDs
+		firstName = rec.FirstName
+
+	} else {
+		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+
+		pIDs = ids
+		firstName = name
+	}
+
+	err = s.pushIf.SendPushNotification(firstName, "Wants to meet!", pIDs)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
 }
 
 func (s *Socket) OfflineMeetRequest(pl *models.Data) {
-
 	// Init a new meet request
 	mr := new(models.MeetRequest)
 
@@ -225,6 +259,30 @@ func (s *Socket) OfflineMeetRequest(pl *models.Data) {
 		return
 	}
 
+	//~ Send Push Notification
+	var pIDs []string
+	var firstName string
+
+	if rec, ok := s.clients.Get(pl.RecipientID); ok {
+		pIDs = rec.PushTknIDs
+		firstName = rec.FirstName
+
+	} else {
+		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.RecipientID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+
+		pIDs = ids
+		firstName = name
+	}
+
+	err = s.pushIf.SendPushNotification(firstName, "Wants to meet!", pIDs)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
 }
 
 func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
@@ -276,6 +334,31 @@ func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) 
 	pl.MeetRequest.SenderStatus = "undefined"
 
 	if err = s.cbaseIf.CacheMeetRequest(&pl.MeetRequest); err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
+
+	//~ Send Push Notification
+	var pIDs []string
+	var firstName string
+
+	if rec, ok := s.clients.Get(pl.MeetRequest.SenderID); ok {
+		pIDs = rec.PushTknIDs
+		firstName = rec.FirstName
+
+	} else {
+		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.MeetRequest.SenderID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+
+		pIDs = ids
+		firstName = name
+	}
+
+	err = s.pushIf.SendPushNotification(firstName, "Ready to meet!", pIDs)
+	if err != nil {
 		s.sLogger.Log.Errorln(err)
 		return
 	}
@@ -484,7 +567,7 @@ func (s *Socket) passStatusUpdate(pl *models.Data) {
 }
 
 /**
-Things to save to redis
+Things to save to json remote redis
 - meet request.
 - Users (key: id, cached chat id []string, instance connected to id string)
 - Chat session
@@ -508,7 +591,6 @@ func (s *Socket) newMessage(pl *models.Data) {
 	ackChan := make(chan bool)
 	go s.ClientConnectedToThisInstance(pl.Message.RecieverID, og, ackChan)
 	if ok := <-ackChan; !ok {
-
 		//~handle checking and sending to other instance if user exist there.
 		s.sLogger.Log.Infoln("user is not connected on this instance")
 		//! Synchronously check if client is connected to other instance, then send payload to client.
@@ -558,10 +640,34 @@ func (s *Socket) newMessage(pl *models.Data) {
 			}
 		}
 	}
+
+	//~ Send Push Notification
+	var pIDs []string
+	var firstName string
+
+	if rec, ok := s.clients.Get(pl.Message.RecieverID); ok {
+		pIDs = rec.PushTknIDs
+		firstName = rec.FirstName
+
+	} else {
+		ids, name, err := s.dbase.GetUserPushNotificationIDs(pl.Message.RecieverID)
+		if err != nil {
+			s.sLogger.Log.Errorln(err)
+			return
+		}
+
+		pIDs = ids
+		firstName = name
+	}
+
+	err := s.pushIf.SendPushNotification(firstName, pl.Message.Content, pIDs)
+	if err != nil {
+		s.sLogger.Log.Errorln(err)
+		return
+	}
 }
 
 func (s *Socket) updateMessageStatus(pl *models.Data) {
-	fmt.Println("ids: ", pl.IDs)
 
 	// check if chat is cached of this is the first message.
 	ok, err := s.cbaseIf.ChatExist(pl.ID)
@@ -609,6 +715,37 @@ func (s *Socket) feedback(pl *models.Data) {
 	err := s.dbase.AddFeedback(pl.Feedback)
 	if err != nil {
 		s.sLogger.Log.Errorln(err)
+		return
+	}
+}
+
+// ~
+func (s *Socket) presenceStatusUpdate(pl *models.Data, sendCh chan *models.Outgoing) {
+	_, ok := s.clients.Get(pl.ID)
+	if ok {
+		//send response
+		sendCh <- &models.Outgoing{
+			OutPayload: models.Payload{
+				Tag: "presence-status-update",
+				Data: models.Data{
+					Status:  "Online",
+					ID:      pl.ID,
+					Context: pl.Context,
+				},
+			},
+		}
+		return
+	} else {
+		sendCh <- &models.Outgoing{
+			OutPayload: models.Payload{
+				Tag: "presence-status-update",
+				Data: models.Data{
+					Status:  "Offline",
+					ID:      pl.ID,
+					Context: pl.Context,
+				},
+			},
+		}
 		return
 	}
 }

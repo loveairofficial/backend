@@ -5,8 +5,10 @@ import (
 	"loveair/api"
 	"loveair/email"
 	"loveair/log"
+	"loveair/push"
 	"os"
 	"runtime"
+	"syscall"
 	"time"
 
 	"loveair/base/cache"
@@ -19,6 +21,7 @@ import (
 	"loveair/core/websocket/router"
 	emailgw "loveair/email/gateway"
 	hookgw "loveair/log/hook/gateway"
+	pushgw "loveair/push/gateway"
 )
 
 var (
@@ -28,6 +31,7 @@ var (
 	cbaseIf cache.Interface
 	emailIf email.Interface
 	sRouter *router.Router
+	pushIf  push.Interface
 )
 
 func init() {
@@ -120,6 +124,9 @@ func init() {
 		"API_KEY": email_api_key},
 	)
 
+	// Init Push
+	pushIf = pushgw.PConnect(pushgw.PTYPE("expo"))
+
 	//! turn on when ready.
 	// Init Router
 	// sRouter, err = router.NewRouter("ws://127.0.0.1:8090/connect/", sLogger)
@@ -142,13 +149,20 @@ func main() {
 		}
 	}()
 
-	// TODO:
+	//~ Increase resources limitations
+	var rLimit syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
+	}
+	rLimit.Cur = rLimit.Max
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
+		panic(err)
+	}
+
 	// USE: 512GB Ram = 125,000 Max Goroutines
 	// 1GB Ram = 250,000 Max Goroutines
 	// 2GB Ram = 500,000 Max Goroutines
 
-	//!make a cron job that runs daily and updates users age or fine a way to use raw time to query age preference.
-	//!solve online status like this immediately you focus on a page start showing the user realtime update of that person alone, sonly who is in focus do you get more update about.
 	//! when users update their data, remove the data from the cache before making the update.
 
 	go func() {
@@ -184,6 +198,7 @@ func main() {
 		cbaseIf,
 		sRouter,
 		emailIf,
+		pushIf,
 		// mediabaseIf,
 		sLogger,
 	))

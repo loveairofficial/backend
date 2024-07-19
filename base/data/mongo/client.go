@@ -34,24 +34,26 @@ func (m *MongoDB) AddUser(usr *models.User) error {
 	id := primitive.NewObjectID()
 
 	data := primitive.M{
-		"_id":          id,
-		"id":           usr.ID,
-		"verification": usr.Verification,
-		"is_paused":    usr.IsPaused,
-		"is_active":    usr.IsActive,
-		"first_name":   usr.FirstName,
-		"last_name":    usr.LastName,
-		"email":        usr.Email,
-		"password":     usr.Password,
-		"is_onboarded": usr.IsOnboarded,
-		"stage_ID":     usr.StageID,
-		"joined_at":    usr.JoinedAt,
-		"preference":   usr.Preference,
-		"address":      usr.Address,
-		"rose_count":   usr.RoseCount,
-		"religiom":     usr.Religion,
-		"subscription": usr.Subscription,
-		"notification": usr.Notification,
+		"_id":                              id,
+		"id":                               usr.ID,
+		"verification":                     usr.Verification,
+		"is_paused":                        usr.IsPaused,
+		"is_active":                        usr.IsActive,
+		"first_name":                       usr.FirstName,
+		"last_name":                        usr.LastName,
+		"email":                            usr.Email,
+		"password":                         usr.Password,
+		"is_onboarded":                     usr.IsOnboarded,
+		"stage_ID":                         usr.StageID,
+		"joined_at":                        usr.JoinedAt,
+		"preference":                       usr.Preference,
+		"address":                          usr.Address,
+		"rose_count":                       usr.RoseCount,
+		"religiom":                         usr.Religion,
+		"subscription":                     usr.Subscription,
+		"notification":                     usr.Notification,
+		"free_trial_count":                 usr.FreeTrialCount,
+		"free_trial_count_issue_timestamp": usr.FreeTrialCountIssueTimestamp,
 	}
 
 	database := m.client.Database(LADB)
@@ -65,19 +67,21 @@ func (m *MongoDB) GetCredential(email string) (*models.User, error) {
 	defer cancel()
 
 	projection := bson.M{
-		"password":          1,
-		"is_onboarded":      1,
-		"email":             1,
-		"id":                1,
-		"first_name":        1,
-		"profile_picture":   bson.M{"$arrayElemAt": bson.A{"$photos", 0}},
-		"is_paused":         1,
-		"phone":             1,
-		"subscription":      1,
-		"verification":      1,
-		"is_active":         1,
-		"deactivated_by":    1,
-		"deactivation_date": 1,
+		"password":                         1,
+		"is_onboarded":                     1,
+		"email":                            1,
+		"id":                               1,
+		"first_name":                       1,
+		"profile_picture":                  bson.M{"$arrayElemAt": bson.A{"$photos", 0}},
+		"is_paused":                        1,
+		"phone":                            1,
+		"subscription":                     1,
+		"verification":                     1,
+		"is_active":                        1,
+		"deactivated_by":                   1,
+		"deactivation_date":                1,
+		"free_trial_count":                 1,
+		"free_trial_count_issue_timestamp": 1,
 	}
 
 	creds := new(models.User)
@@ -129,6 +133,35 @@ func (m *MongoDB) GetDevice(email, did string) (*models.Device, error) {
 	}
 
 	return &creds.Devices[0], nil
+}
+
+func (m *MongoDB) GetUserPushNotificationIDs(id string) ([]string, string, error) {
+	ctx, cancel := getContext()
+	defer cancel()
+
+	projection := bson.M{
+		"first_name": 1,
+		"devices":    1,
+	}
+
+	filter := bson.M{
+		"id": id,
+	}
+
+	creds := new(models.User)
+
+	database := m.client.Database(LADB)
+	collection := database.Collection(UserCLX)
+
+	err := collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&creds)
+
+	var pIDs []string
+
+	for _, device := range creds.Devices {
+		pIDs = append(pIDs, device.PushTkn)
+	}
+
+	return pIDs, creds.FirstName, err
 }
 
 func (m *MongoDB) DeleteDevice(email, did string) error {
@@ -420,6 +453,8 @@ func (m *MongoDB) HydrateMeetRequests(ids []string, mrs []models.MeetRequest) ([
 			mr.User = user
 			mr.User.LastSeen = mr.LastSeen
 			mr.User.Presence = mr.Presence
+			mr.User.MutualInterest = mr.MutualInterest
+			mr.User.ExclusiveInterest = mr.ExclusiveInterest
 		}
 
 		meetRequests = append(meetRequests, *mr)
@@ -734,6 +769,17 @@ func (m *MongoDB) AddTransaction(payload models.WebhookPayload) error {
 	collection := database.Collection(TransactionCLX)
 	_, err := collection.InsertOne(ctx, data)
 
+	return err
+}
+
+func (m *MongoDB) UpdateFreeTrialCount(email string, count int, d time.Time) error {
+	filter := bson.M{"email": email}
+	update := bson.M{"$set": bson.M{
+		"free_trial_count":                 count,
+		"free_trial_count_issue_timestamp": d,
+	}}
+
+	err := m.Updater(UserCLX, filter, update)
 	return err
 }
 

@@ -5,28 +5,29 @@ import (
 )
 
 type User struct {
-	ID                    string    `json:"id" bson:"id"`
-	IsActive              bool      `json:"isActive" bson:"is_active"`
-	DeactivatedBy         string    `json:"deactivatedBy" bson:"deactivated_by"`
-	DeactivationDate      time.Time `json:"deactivationDate" bson:"deactivation_date"`
-	IsPaused              bool      `json:"isPaused" bson:"is_paused"`
-	Verification          bool      `json:"verification" bson:"verification"`
-	FirstName             string    `json:"firstName" bson:"first_name"`
-	LastName              string    `json:"lastName" bson:"last_name"`
-	Email                 string    `json:"email" bson:"email"`
-	Provider              string    `json:"provider" bson:"provider"` //Authentication provider eg. loveair, google or apple
-	Phone                 string    `json:"phone" bson:"phone"`
-	Password              string    `json:"password" bson:"password"`
-	IsOnboarded           bool      `json:"isOnboarded" bson:"is_onboarded"`
-	StageID               int       `json:"stageID" bson:"stage_ID"`
-	Subscription          string    `json:"subscription,omitempty" bson:"subscription"`
-	FreeDailyTrialCount   int       `json:"free_daily_trial_count,omitempty" bson:"free_daily_trial_count"`
-	Gender                string    `json:"gender,omitempty" bson:"gender"`
-	DOB                   time.Time `json:"dob,omitempty" bson:"dob"`
-	RelationshipIntention string    `json:"relationshipIntention,omitempty" bson:"relationship_intention"`
-	Interests             []string  `json:"interests,omitempty" bson:"interests"`
-	Religion              string    `json:"religion" bson:"religion"`
-	ProfilePicture        Photo     `json:"profilePicture" bson:"profile_picture"`
+	ID                           string    `json:"id" bson:"id"`
+	IsActive                     bool      `json:"isActive" bson:"is_active"`
+	DeactivatedBy                string    `json:"deactivatedBy" bson:"deactivated_by"`
+	DeactivationDate             time.Time `json:"deactivationDate" bson:"deactivation_date"`
+	IsPaused                     bool      `json:"isPaused" bson:"is_paused"`
+	Verification                 bool      `json:"verification" bson:"verification"`
+	FirstName                    string    `json:"firstName" bson:"first_name"`
+	LastName                     string    `json:"lastName" bson:"last_name"`
+	Email                        string    `json:"email" bson:"email"`
+	Provider                     string    `json:"provider" bson:"provider"` //Authentication provider eg. loveair, google or apple
+	Phone                        string    `json:"phone" bson:"phone"`
+	Password                     string    `json:"password" bson:"password"`
+	IsOnboarded                  bool      `json:"isOnboarded" bson:"is_onboarded"`
+	StageID                      int       `json:"stageID" bson:"stage_ID"`
+	Subscription                 string    `json:"subscription,omitempty" bson:"subscription"`
+	FreeTrialCount               int       `json:"freeTrialCount,omitempty" bson:"free_trial_count"`
+	FreeTrialCountIssueTimestamp time.Time `json:"freeTrialCountIssueTimestamp,omitempty" bson:"free_trial_count_issue_timestamp"`
+	Gender                       string    `json:"gender,omitempty" bson:"gender"`
+	DOB                          time.Time `json:"dob,omitempty" bson:"dob"`
+	RelationshipIntention        string    `json:"relationshipIntention,omitempty" bson:"relationship_intention"`
+	Interests                    []string  `json:"interests,omitempty" bson:"interests"`
+	Religion                     string    `json:"religion" bson:"religion"`
+	ProfilePicture               Photo     `json:"profilePicture" bson:"profile_picture"`
 
 	IntroType           string       `json:"introType,omitempty" bson:"intro_type"`
 	IntroVideoUri       string       `json:"introVideoUri,omitempty" bson:"intro_video_uri"`
@@ -62,9 +63,6 @@ type Notification struct {
 	Email bool `json:"email" bson:"email"`
 	Push  bool `json:"push" bson:"push"`
 }
-
-// User info stored in neo4j
-type MetaUser struct{}
 
 type Device struct {
 	// Device ID is the unique identifier for the device assigned the token.

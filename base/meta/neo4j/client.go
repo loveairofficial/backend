@@ -21,10 +21,11 @@ func (neo *Neo4j) AddUser(usr models.User) error {
 		"is_active":  usr.IsActive,
 		"is_paused":  usr.IsPaused,
 		"first_name": usr.FirstName,
+		"boost":      0,
 	}
 
 	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
-		"CREATE (:USER { id: $id, first_name: $first_name, is_active: $is_active, is_paused: $is_paused })",
+		"CREATE (:USER { id: $id, first_name: $first_name, is_active: $is_active, is_paused: $is_paused, boost: $boost })",
 		param,
 		neo4j.EagerResultTransformer)
 	if err != nil {
@@ -372,12 +373,14 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		%s
 		%s
 		OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
-		WITH n, on, COLLECT(i.name) AS mutualInterests
+		WITH n, on, COLLECT(i.name) AS mutualInterests, COUNT(i) AS mutualInterestsCount, coalesce(on.boost, 0) AS boostFactor
 		OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
 		WHERE NOT (n)-[:INTERESTED_IN]->(oi)
-		WITH on, mutualInterests, COLLECT(oi.name) AS exclusiveInterests
+		WITH on, mutualInterests, mutualInterestsCount, boostFactor, COLLECT(oi.name) AS exclusiveInterests
 		RETURN on.id AS id, on.last_seen AS lastSeen, on.presence AS presence, mutualInterests, exclusiveInterests
-		LIMIT 5`, baseQuery, conditionString)
+		ORDER BY (mutualInterestsCount + boostFactor) DESC
+		LIMIT 3
+		`, baseQuery, conditionString)
 
 	// Execute the query
 	result, err := neo4j.ExecuteQuery(
@@ -390,8 +393,6 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 	if err != nil {
 		return nil, fmt.Errorf("query execution failed: %w", err)
 	}
-
-	fmt.Println(len(result.Records), result.Keys)
 
 	var potentialMatches []models.User
 
@@ -538,11 +539,23 @@ func (neo *Neo4j) GetMeetRequests(id string) ([]models.MeetRequest, error) {
 		"id": id,
 	}
 
+	// query := `
+	// 	MATCH (n:USER {id: $id})
+	// 	MATCH (on)-[r:REQUESTED_TO_MEET]->(n)
+	// 	RETURN  r.id AS mrId, r.timestamp AS timestamp, r.compliment AS compliment, r.rose AS rose, on.id AS userID, on.last_seen AS lastSeen, on.presence AS presence
+	// 	`
+
 	query := `
 		MATCH (n:USER {id: $id})
 		MATCH (on)-[r:REQUESTED_TO_MEET]->(n)
-		RETURN  r.id AS mrId, r.timestamp AS timestamp, r.compliment AS compliment, r.rose AS rose, on.id AS userID, on.last_seen AS lastSeen, on.presence AS presence
-		`
+		OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
+		WITH n, on, r, COLLECT(i.name) AS mutualInterests
+		OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
+		WHERE NOT (n)-[:INTERESTED_IN]->(oi)
+		WITH on, r, mutualInterests, COLLECT(oi.name) AS exclusiveInterests
+		RETURN r.id AS mrId, r.timestamp AS timestamp, r.compliment AS compliment, r.rose AS rose, on.id AS userID, on.last_seen AS lastSeen, on.presence AS presence, mutualInterests, exclusiveInterests
+		LIMIT 5
+`
 
 	// Execute the query
 	result, err := neo4j.ExecuteQuery(
@@ -573,8 +586,17 @@ func (neo *Neo4j) GetMeetRequests(id string) ([]models.MeetRequest, error) {
 		complimentI, _ := record.Get("compliment")
 		meetRequest.Compliment, _ = complimentI.(string)
 
-		roseI, _ := record.Get("exclusiveInterests")
+		roseI, _ := record.Get("rose")
 		meetRequest.Rose, _ = roseI.(bool)
+
+		//! implement exclusive interests
+		miI, _ := record.Get("mutualInterests")
+		mi, _ := miI.([]interface{})
+		meetRequest.MutualInterest = ConvertInterfaceToStringSlice(mi)
+
+		eiI, _ := record.Get("exclusiveInterests")
+		ei, _ := eiI.([]interface{})
+		meetRequest.ExclusiveInterest = ConvertInterfaceToStringSlice(ei)
 
 		userIDI, _ := record.Get("userID")
 		meetRequest.User.ID, _ = userIDI.(string)

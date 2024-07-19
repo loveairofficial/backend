@@ -9,6 +9,7 @@ import (
 	"loveair/core/websocket/gorilla"
 	"loveair/email"
 	"loveair/log"
+	"loveair/push"
 	"net/http"
 	"time"
 
@@ -64,14 +65,15 @@ func Start(secret string,
 	cbaseIf cache.Interface,
 	sRouter *router.Router,
 	emailIf email.Interface,
+	pushIf push.Interface,
 	sLogger log.SLoger,
 ) error {
 	logrus.Infoln("Service Listening On " + endpoint)
 
-	socket := gorilla.InitWebsocket(dbaseIf, mbaseIf, cbaseIf, sRouter, emailIf, sLogger)
+	socket := gorilla.InitWebsocket(dbaseIf, mbaseIf, cbaseIf, sRouter, emailIf, pushIf, sLogger)
 	socket.Daemon()
 
-	rest := rest.InitRest(secret, dbaseIf, mbaseIf, cbaseIf, emailIf, sLogger)
+	rest := rest.InitRest(secret, dbaseIf, mbaseIf, cbaseIf, emailIf, pushIf, sLogger)
 	// rest.Daemon()
 
 	r := mux.NewRouter()

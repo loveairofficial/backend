@@ -7,6 +7,7 @@ import (
 	"loveair/email"
 	"loveair/log"
 	"loveair/models"
+	"loveair/push"
 	"net/http"
 	"sort"
 	"time"
@@ -44,10 +45,11 @@ type Socket struct {
 	cbaseIf cache.Interface
 	sRouter *router.Router
 	emailIf email.Interface
+	pushIf  push.Interface
 	sLogger log.SLoger
 }
 
-func InitWebsocket(dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, sRouter *router.Router, emailIf email.Interface, serviceLogger log.SLoger) *Socket {
+func InitWebsocket(dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, sRouter *router.Router, emailIf email.Interface, pushIf push.Interface, serviceLogger log.SLoger) *Socket {
 
 	return &Socket{
 		connCount: 0,
@@ -59,6 +61,7 @@ func InitWebsocket(dbase data.Interface, mbase meta.Interface, cbaseIf cache.Int
 		cbaseIf:   cbaseIf,
 		sRouter:   sRouter,
 		emailIf:   emailIf,
+		pushIf:    pushIf,
 		sLogger:   serviceLogger,
 	}
 }

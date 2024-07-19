@@ -12,6 +12,7 @@ import (
 	"loveair/email"
 	"loveair/log"
 	"loveair/models"
+	"loveair/push"
 	"math/big"
 	"net/http"
 	"time"
@@ -75,6 +76,7 @@ type Data struct {
 	Terms                   string               `json:"terms"`
 	PrivacyPolicy           string               `json:"privacy_policy"`
 	HowLoveairWorks         string               `json:"how_loveair_works"`
+	FreeTrialAvailability   bool                 `json:"free_trial_availability"`
 }
 
 type Rest struct {
@@ -83,16 +85,18 @@ type Rest struct {
 	mbase   meta.Interface
 	cbaseIf cache.Interface
 	emailIf email.Interface
+	pushIf  push.Interface
 	sLogger log.SLoger
 }
 
-func InitRest(secret string, dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, emailIf email.Interface, sLogger log.SLoger) *Rest {
+func InitRest(secret string, dbase data.Interface, mbase meta.Interface, cbaseIf cache.Interface, emailIf email.Interface, pushIf push.Interface, sLogger log.SLoger) *Rest {
 	return &Rest{
 		secret,
 		dbase,
 		mbase,
 		cbaseIf,
 		emailIf,
+		pushIf,
 		sLogger,
 	}
 }
