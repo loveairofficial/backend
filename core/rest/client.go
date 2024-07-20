@@ -638,7 +638,7 @@ func (re *Rest) GetSignature(w http.ResponseWriter, r *http.Request) {
 	ParamsToSign["folder"] = []string{folder}
 
 	// !dont hardcode secret
-	signature, err := api.SignParameters(ParamsToSign, "YoVyOQ-uoCP3CVhqB0CoohPIxT0")
+	signature, err := api.SignParameters(ParamsToSign, os.Getenv("CLOUDINARY_SECRET"))
 
 	fmt.Println(signature, err)
 
