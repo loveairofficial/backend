@@ -33,6 +33,7 @@ type Payload struct {
 
 type Data struct {
 	ID             string      `json:"id"`
+	Email          string      `json:"email"`
 	IDs            []string    `json:"ids"`
 	CallID         string      `json:"callID"`
 	UserID         string      `json:"userID"`

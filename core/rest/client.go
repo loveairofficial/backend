@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"loveair/models"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -906,37 +907,37 @@ func (re *Rest) CheckFreeTrialAvailability(w http.ResponseWriter, r *http.Reques
 			Status:     "200",
 			StatusCode: http.StatusOK,
 			Data: Data{
-				FreeTrialAvailability: true,
+				FreeTrialResetTime: 24,
+				FreeTrialCount:     5,
 			},
 		})
 		return
 	} else {
-		if creds.FreeTrialCount > 0 {
-			err := re.dbase.UpdateFreeTrialCount(email, creds.FreeTrialCount-1, creds.FreeTrialCountIssueTimestamp)
-			if err != nil {
-				re.sLogger.Log.Errorln(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
+		durationInHours := 24 - math.Round(duration.Hours())
 
-			re.writeJSON(w, Response{
-				Status:     "200",
-				StatusCode: http.StatusOK,
-				Data: Data{
-					FreeTrialAvailability: true,
-				},
-			})
-			return
-		} else {
-			re.writeJSON(w, Response{
-				Status:     "200",
-				StatusCode: http.StatusOK,
-				Data: Data{
-					FreeTrialAvailability: false,
-				},
-			})
-			return
+		// Ensure duration is not negative
+		if durationInHours < 0 {
+			durationInHours = 0
 		}
+
+		//! add to another code decrease trial count.
+		// err := re.dbase.UpdateFreeTrialCount(email, creds.FreeTrialCount-1, creds.FreeTrialCountIssueTimestamp)
+		// if err != nil {
+		// 	re.sLogger.Log.Errorln(err)
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	return
+		// }
+
+		re.writeJSON(w, Response{
+			Status:     "200",
+			StatusCode: http.StatusOK,
+			Data: Data{
+				FreeTrialResetTime: durationInHours,
+				FreeTrialCount:     creds.FreeTrialCount,
+			},
+		})
+		return
+
 	}
 }
 

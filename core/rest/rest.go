@@ -76,7 +76,8 @@ type Data struct {
 	Terms                   string               `json:"terms"`
 	PrivacyPolicy           string               `json:"privacy_policy"`
 	HowLoveairWorks         string               `json:"how_loveair_works"`
-	FreeTrialAvailability   bool                 `json:"free_trial_availability"`
+	FreeTrialResetTime      float64              `json:"free_trial_reset_time"`
+	FreeTrialCount          int                  `json:"free_trial_count"`
 }
 
 type Rest struct {
