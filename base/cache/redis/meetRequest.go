@@ -3,10 +3,18 @@ package redis
 import (
 	"fmt"
 	"loveair/models"
+	"time"
 )
 
 func (r *Redis) CacheMeetRequest(mr *models.MeetRequest) error {
 	res, err := r.remoteRJH.JSONSet(mr.CallID, ".", mr)
+
+	if err == nil {
+		ctx, cancel := getContext()
+		defer cancel()
+		_ = r.remoteClient.Expire(ctx, mr.CallID, 3*time.Hour).Err()
+	}
+
 	fmt.Println("redis ", res, err)
 	return err
 }

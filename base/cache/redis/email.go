@@ -9,6 +9,7 @@ func (r *Redis) SetPin(key string, pin string, d time.Duration) error {
 	defer cancel()
 
 	err := r.localClient0.Set(ctx, key, pin, d).Err()
+
 	return err
 }
 

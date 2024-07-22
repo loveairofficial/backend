@@ -1,6 +1,9 @@
 package redis
 
-import "loveair/models"
+import (
+	"loveair/models"
+	"time"
+)
 
 func (r *Redis) ClientExist(clientID string) (bool, error) {
 	ctx, cancel := getContext()
@@ -20,6 +23,12 @@ func (r *Redis) ClientExist(clientID string) (bool, error) {
 
 func (r *Redis) AddClient(clientID string, cc models.ClientCache) error {
 	_, err := r.remoteRJH.JSONSet(clientID, ".", cc)
+
+	if err == nil {
+		ctx, cancel := getContext()
+		defer cancel()
+		_ = r.remoteClient.Expire(ctx, clientID, 24*time.Hour).Err()
+	}
 	return err
 }
 
