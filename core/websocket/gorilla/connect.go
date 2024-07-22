@@ -329,26 +329,26 @@ func (s *Socket) OfflineMeetRequest(pl *models.Data) {
 }
 
 func (s *Socket) reInitMatchCall(pl *models.Data, sendCh chan *models.Outgoing) {
-	creds, err := s.dbase.GetCredential(pl.Email)
-	if err != nil {
-		s.sLogger.Log.Errorln(err)
-		return
-	}
+	// creds, err := s.dbase.GetCredential(pl.Email)
+	// if err != nil {
+	// 	s.sLogger.Log.Errorln(err)
+	// 	return
+	// }
 
-	if creds.Subscription == "Free" {
-		if creds.FreeTrialCount > 0 {
-			//~ deduct from free trial
-			err := s.dbase.UpdateFreeTrialCount(pl.Email, creds.FreeTrialCount-1, creds.FreeTrialCountIssueTimestamp)
-			if err != nil {
-				s.sLogger.Log.Errorln(err)
-				return
-			}
+	// if creds.Subscription == "Free" {
+	// 	if creds.FreeTrialCount > 0 {
+	// 		//~ deduct from free trial
+	// 		err := s.dbase.UpdateFreeTrialCount(pl.Email, creds.FreeTrialCount-1, creds.FreeTrialCountIssueTimestamp)
+	// 		if err != nil {
+	// 			s.sLogger.Log.Errorln(err)
+	// 			return
+	// 		}
 
-		} else {
-			s.sLogger.Log.Errorln("Potential hack user is not supposed to be able to send this meet request/init match call")
-			return
-		}
-	}
+	// 	} else {
+	// 		s.sLogger.Log.Errorln("Potential hack user is not supposed to be able to send this meet request/init match call")
+	// 		return
+	// 	}
+	// }
 
 	callID := s.generateID()
 
