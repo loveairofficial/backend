@@ -39,6 +39,7 @@ func (m *MongoDB) AddUser(usr *models.User) error {
 		"verification":                     usr.Verification,
 		"is_paused":                        usr.IsPaused,
 		"is_active":                        usr.IsActive,
+		"is_suppressed":                    usr.IsSuppressed,
 		"first_name":                       usr.FirstName,
 		"last_name":                        usr.LastName,
 		"email":                            usr.Email,

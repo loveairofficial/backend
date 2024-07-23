@@ -17,15 +17,16 @@ func (neo *Neo4j) AddUser(usr models.User) error {
 	defer session.Close(ctx)
 
 	param := map[string]interface{}{
-		"id":         usr.ID,
-		"is_active":  usr.IsActive,
-		"is_paused":  usr.IsPaused,
-		"first_name": usr.FirstName,
-		"boost":      0,
+		"id":            usr.ID,
+		"is_active":     usr.IsActive,
+		"is_paused":     usr.IsPaused,
+		"first_name":    usr.FirstName,
+		"boost":         0,
+		"is_suppressed": usr.IsSuppressed,
 	}
 
 	_, err := neo4j.ExecuteQuery(ctx, neo.driver,
-		"CREATE (:USER { id: $id, first_name: $first_name, is_active: $is_active, is_paused: $is_paused, boost: $boost })",
+		"CREATE (:USER { id: $id, first_name: $first_name, is_active: $is_active, is_paused: $is_paused, boost: $boost, is_suppressed: $is_suppressed })",
 		param,
 		neo4j.EagerResultTransformer)
 	if err != nil {
@@ -331,7 +332,7 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 	baseQuery := `
     WITH date() AS currentDate
     MATCH (n:USER{id: $id})
-    MATCH (on:USER{is_active: true, is_paused: false})
+    MATCH (on:USER{is_active: true, is_paused: false, is_suppressed: false})
     WHERE on.id <> n.id
     AND NOT (n)-[:MATCH|PASS|UNMATCH|REQUESTED_TO_MEET]-(on)
     AND on.rel_int IN $rel_int

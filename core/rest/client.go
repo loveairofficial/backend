@@ -269,6 +269,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 
 	usr.FreeTrialCount = 5
 	usr.FreeTrialCountIssueTimestamp = time.Now().UTC()
+	usr.IsSuppressed = false
 
 	// Store credentials to database.
 	err = re.dbase.AddUser(usr)

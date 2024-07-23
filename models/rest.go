@@ -10,6 +10,7 @@ type User struct {
 	DeactivatedBy                string    `json:"deactivatedBy" bson:"deactivated_by"`
 	DeactivationDate             time.Time `json:"deactivationDate" bson:"deactivation_date"`
 	IsPaused                     bool      `json:"isPaused" bson:"is_paused"`
+	IsSuppressed                 bool      `json:"isSuppressed" bson:"is_suppressed"`
 	Verification                 bool      `json:"verification" bson:"verification"`
 	FirstName                    string    `json:"firstName" bson:"first_name"`
 	LastName                     string    `json:"lastName" bson:"last_name"`
