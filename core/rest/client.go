@@ -267,7 +267,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 		Push:  true,
 	}
 
-	usr.FreeTrialCount = 5
+	usr.FreeTrialCount = 3
 	usr.FreeTrialCountIssueTimestamp = time.Now().UTC()
 	usr.IsSuppressed = false
 
@@ -897,7 +897,7 @@ func (re *Rest) CheckFreeTrialAvailability(w http.ResponseWriter, r *http.Reques
 
 	if duration > 24*time.Hour {
 		// Reset
-		err := re.dbase.UpdateFreeTrialCount(email, 5, time.Now().UTC())
+		err := re.dbase.UpdateFreeTrialCount(email, 3, time.Now().UTC())
 		if err != nil {
 			re.sLogger.Log.Errorln(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -909,7 +909,7 @@ func (re *Rest) CheckFreeTrialAvailability(w http.ResponseWriter, r *http.Reques
 			StatusCode: http.StatusOK,
 			Data: Data{
 				FreeTrialResetTime: 24,
-				FreeTrialCount:     5,
+				FreeTrialCount:     3,
 			},
 		})
 		return
