@@ -389,6 +389,7 @@ func (m *MongoDB) GetPotentialMatch(id string) (models.User, error) {
 		"verification":           1,
 		"notification":           1,
 		"subscription":           1,
+		"isSuppressed":           1,
 	}
 
 	database := m.client.Database(LADB)
