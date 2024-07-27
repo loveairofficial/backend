@@ -249,7 +249,7 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 			Max: 35,
 		},
 		Global:   true,
-		Presence: "Online",
+		Presence: "Open to all",
 		GeoCircle: models.GeoCircle{
 			Lat:    0.0,
 			Lon:    0.0,
