@@ -30,14 +30,32 @@ var (
 type Claims struct {
 	Email string
 	DID   string
+
+	// Admin
+	Role        string
+	Permissions map[string]map[string]bool
+
 	jwt.StandardClaims
 }
 
 type Response struct {
-	Status     string `json:"status,omitempty"`
-	StatusCode int    `json:"status_code,omitempty"`
-	Message    string `json:"message,omitempty"`
-	Data       Data   `json:"data"`
+	Status     string    `json:"status,omitempty"`
+	StatusCode int       `json:"status_code,omitempty"`
+	Message    string    `json:"message,omitempty"`
+	Data       Data      `json:"data"`
+	AdminData  AdminData `json:"admin_data"`
+}
+
+type AdminData struct {
+	AccessTkn      string         `json:"access_tkn"`
+	Email          string         `json:"email"`
+	Name           string         `json:"name"`
+	ProfilePicture string         `json:"profile_picture"`
+	Role           string         `json:"role"`
+	Users          []models.User  `json:"users"`
+	UsersCount     int64          `json:"users_count"`
+	Roles          []models.Role  `json:"roles"`
+	Admins         []models.Admin `json:"admins"`
 }
 
 type Data struct {
@@ -181,4 +199,27 @@ func GenerateRandomPin() (string, error) {
 	pin := fmt.Sprintf("%04d", n.Int64())
 
 	return pin, nil
+}
+
+// Admin
+func (re *Rest) generateAdminAccessTkn(duration time.Duration, email string, role models.Role) (string, error) {
+	expirationTime := time.Now().Add(duration)
+
+	claims := &Claims{
+		Email:       email,
+		Role:        role.Name,
+		Permissions: role.Permissions,
+		StandardClaims: jwt.StandardClaims{
+			// In JWT, the expiry time is expressed as unix milliseconds
+			ExpiresAt: expirationTime.Unix(),
+		},
+	}
+
+	tkn := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tknString, err := tkn.SignedString([]byte(re.secret))
+	if err != nil {
+		return "", err
+	}
+
+	return tknString, nil
 }

@@ -6,6 +6,7 @@ import (
 )
 
 type Interface interface {
+	//~ Client
 	VerifyEmailExist(string) error
 	AddUser(*models.User) error
 	GetCredential(string) (*models.User, error)
@@ -86,4 +87,19 @@ type Interface interface {
 	GetTerms() (string, error)
 	GetPrivacyPolicy() (string, error)
 	GetHowLoveairWorks() (string, error)
+
+	//~ Admin
+	//Users
+	GetAdminCredential(string) (*models.Admin, error)
+	CheckAdminCredential(string) error
+	GetUsers(int64, int64) (*[]models.User, int64, error)
+
+	// Roles
+	GetRoles() (*[]models.Role, error)
+
+	//Admins
+	AddAdmin(*models.Admin) error
+	GetAdmins() (*[]models.Admin, error)
+	SuppressAccount(string) error
+	UnSuppressAccount(string) error
 }

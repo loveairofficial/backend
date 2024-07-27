@@ -1,6 +1,7 @@
 package api
 
 import (
+	"loveair/api/admin"
 	"loveair/api/client"
 	"loveair/base/cache"
 	"loveair/base/data"
@@ -87,8 +88,8 @@ func Start(secret string,
 	client.Route(cr, rest, secret, socket, sLogger)
 
 	// Admin route
-	// ar := r.PathPrefix("/ar").Subrouter()
-	// admin.Route(ar, rest, websocket, secret, mediabaseIf, serviceLogger)
+	ar := r.PathPrefix("/ar").Subrouter()
+	admin.Route(ar, rest, socket, secret, sLogger)
 
 	return http.ListenAndServe(":"+endpoint, r)
 }

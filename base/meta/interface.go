@@ -7,6 +7,7 @@ import (
 
 // Base is used to interface (plug and play) multiple Meta Database.
 type Interface interface {
+	//~ Client
 	AddUser(models.User) error
 	UpdateUserInfo(string, *models.User) error
 	UpdateUserLocation(string, float64, float64) error
@@ -26,4 +27,8 @@ type Interface interface {
 
 	//Subscription Boost
 	UpdateUserBoost(string, int) error
+
+	//~ Admin
+	SuppressAccount(string) error
+	UnSuppressAccount(string) error
 }

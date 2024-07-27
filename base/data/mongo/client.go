@@ -252,6 +252,7 @@ func (m *MongoDB) UpdateProfile(userID string, usr models.User) error {
 		"intro_video_uri": usr.IntroVideoUri,
 		"intro_audio_uri": usr.IntroAudioUri,
 		"photos":          usr.Photos,
+		"status":          "pending-review",
 	}}
 
 	err := m.Updater(UserCLX, filter, update)

@@ -11,7 +11,11 @@ import (
 )
 
 const (
-	LADB           = "LADB"
+	LADB = "LADB"
+
+	AdminCLX = "AdminCLX"
+	RoleCLX  = "RoleCLX"
+
 	UserCLX        = "UserCLX"
 	ChatCLX        = "ChatCLX"
 	ReportCLX      = "ReportCLX"

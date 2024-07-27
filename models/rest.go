@@ -5,12 +5,15 @@ import (
 )
 
 type User struct {
-	ID                           string    `json:"id" bson:"id"`
-	IsActive                     bool      `json:"isActive" bson:"is_active"`
-	DeactivatedBy                string    `json:"deactivatedBy" bson:"deactivated_by"`
-	DeactivationDate             time.Time `json:"deactivationDate" bson:"deactivation_date"`
-	IsPaused                     bool      `json:"isPaused" bson:"is_paused"`
-	IsSuppressed                 bool      `json:"isSuppressed" bson:"is_suppressed"`
+	ID               string    `json:"id" bson:"id"`
+	IsActive         bool      `json:"isActive" bson:"is_active"`
+	DeactivatedBy    string    `json:"deactivatedBy" bson:"deactivated_by"`
+	DeactivationDate time.Time `json:"deactivationDate" bson:"deactivation_date"`
+	IsPaused         bool      `json:"isPaused" bson:"is_paused"`
+
+	Status       string `json:"status" bson:"status"` // pending-review, approved, declined
+	IsSuppressed bool   `json:"isSuppressed" bson:"is_suppressed"`
+
 	Verification                 bool      `json:"verification" bson:"verification"`
 	FirstName                    string    `json:"firstName" bson:"first_name"`
 	LastName                     string    `json:"lastName" bson:"last_name"`
@@ -223,4 +226,29 @@ type Config struct {
 	Terms           string `bson:"terms" json:"terms"`
 	PrivacyPolicy   string `bson:"privacy_policy" json:"privacyPolicy"`
 	HowLoveairWorks string `bson:"how_loveair_works" json:"howLoveairWorks"`
+}
+
+// Admin
+type Admin struct {
+	Name           string `json:"name,omitempty" bson:"name"`
+	IsActive       bool   `json:"isActive" bson:"is_active"`
+	Phone          string `json:"phone,omitempty" bson:"phone"`
+	Email          string `json:"email,omitempty" bson:"email"`
+	Password       string `json:"password,omitempty" bson:"password"`
+	Address        string `json:"address" bson:"address"`
+	ProfilePicture string `json:"profile_picture" bson:"profile_picture"`
+
+	Role       Role       `json:"role,omitempty" bson:"role"`
+	Joined     string     `json:"joined,omitempty" bson:"joined"`
+	Activities []Activity `json:"activities" bson:"activities"`
+}
+
+type Activity struct {
+	Name      string `json:"name,omitempty"`
+	TimeStamp string `json:"time_stamp,omitempty"`
+}
+
+type Role struct {
+	Name        string                     `json:"name,omitempty"` // Manager, Admin & Super Admin
+	Permissions map[string]map[string]bool `json:"permissions,omitempty"`
 }
