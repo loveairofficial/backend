@@ -59,7 +59,7 @@ func (m *MongoDB) GetUsers(count, offset int64) (*[]models.User, int64, error) {
 	collection := database.Collection(UserCLX)
 
 	// Define options for sorting
-	opts := options.Find().SetSort(map[string]int{"joined": -1}) // Sort by joined field in descending order
+	opts := options.Find().SetSort(map[string]int{"joined_at": -1}) // Sort by joined field in descending order
 	opts.SetLimit(count)
 	opts.SetSkip(offset)
 

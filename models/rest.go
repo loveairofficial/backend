@@ -64,8 +64,9 @@ type Location struct {
 }
 
 type Notification struct {
-	Email bool `json:"email" bson:"email"`
-	Push  bool `json:"push" bson:"push"`
+	Email   bool   `json:"email" bson:"email"`
+	Push    bool   `json:"push" bson:"push"`
+	PushTkn string `json:"pushTkn" bson:"push_tkn"`
 }
 
 type Device struct {

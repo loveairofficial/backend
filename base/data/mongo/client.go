@@ -225,11 +225,17 @@ func (m *MongoDB) UpdateLocation(userID string, loc models.Location) error {
 	return err
 }
 
-func (m *MongoDB) UpdateNotification(userID string, noti models.Notification) error {
-	filter := bson.M{"id": userID}
+func (m *MongoDB) UpdateNotification(userID, deviceID string, noti models.Notification) error {
+	filter := bson.M{
+		"id":                userID,
+		"devices.device_id": deviceID,
+	}
+
 	update := bson.M{"$set": bson.M{
 		"notification.email": noti.Email,
 		"notification.push":  noti.Push,
+
+		"devices.$.push_tkn": noti.PushTkn,
 	}}
 
 	err := m.Updater(UserCLX, filter, update)

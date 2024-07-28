@@ -43,7 +43,7 @@ type Interface interface {
 
 	//Profile
 	UpdateLocation(string, models.Location) error
-	UpdateNotification(string, models.Notification) error
+	UpdateNotification(string, string, models.Notification) error
 	UpdateProfile(string, models.User) error
 	UpdateAccount(string, models.User) error
 	UpdatePassword(string, string) error

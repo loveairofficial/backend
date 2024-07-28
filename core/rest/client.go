@@ -1234,7 +1234,20 @@ func (re *Rest) UpdateNotification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(r.PostFormValue("location"))
+	//~ Access tkn has expired, handle accordingly (check refresh tkn)
+	var tk string
+
+	// Retrieve the Authorization header from the request
+	if tk = r.Header.Get("Refresh-Authorization"); tk == "" {
+		http.Error(w, "refresh_token is not found in Authorization header.", http.StatusUnauthorized)
+		re.sLogger.Log.Errorln("refresh_token is not found in Authorization header.")
+		return
+	}
+
+	claim := &Claims{}
+	_, err = jwt.ParseWithClaims(tk, claim, func(token *jwt.Token) (interface{}, error) {
+		return []byte(re.secret), nil
+	})
 
 	notiStr := r.PostFormValue("notification")
 
@@ -1244,7 +1257,7 @@ func (re *Rest) UpdateNotification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = re.dbase.UpdateNotification(id, noti)
+	err = re.dbase.UpdateNotification(id, claim.DID, noti)
 	if err != nil {
 		re.sLogger.Log.Errorln(err)
 		w.WriteHeader(http.StatusInternalServerError)
