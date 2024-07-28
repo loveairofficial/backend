@@ -374,13 +374,13 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		%s
 		%s
 		OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
-		WITH n, on, COLLECT(i.name) AS mutualInterests, COUNT(i) AS mutualInterestsCount, coalesce(on.boost, 0) AS boostFactor
+		WITH n, on, COLLECT(DISTINCT i.name) AS mutualInterests, COUNT(DISTINCT i) AS mutualInterestsCount, coalesce(on.boost, 0) AS boostFactor
 		OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
 		WHERE NOT (n)-[:INTERESTED_IN]->(oi)
-		WITH on, mutualInterests, mutualInterestsCount, boostFactor, COLLECT(oi.name) AS exclusiveInterests
+		WITH on, mutualInterests, mutualInterestsCount, boostFactor, COLLECT(DISTINCT oi.name) AS exclusiveInterests
 		RETURN on.id AS id, on.last_seen AS lastSeen, on.presence AS presence, mutualInterests, exclusiveInterests
 		ORDER BY (mutualInterestsCount + boostFactor) DESC
-		LIMIT 3
+		LIMIT 5
 		`, baseQuery, conditionString)
 
 	// Execute the query
@@ -403,9 +403,11 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 
 		idI, _ := record.Get("id")
 		potentialMatch.ID, _ = idI.(string)
+
 		miI, _ := record.Get("mutualInterests")
 		mi, _ := miI.([]interface{})
 		potentialMatch.MutualInterest = ConvertInterfaceToStringSlice(mi)
+
 		lsI, _ := record.Get("lastSeen")
 		potentialMatch.LastSeen, _ = lsI.(time.Time)
 		prI, _ := record.Get("presence")
@@ -416,6 +418,8 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 
 		potentialMatches = append(potentialMatches, potentialMatch)
 	}
+
+	fmt.Println(len(potentialMatches))
 
 	return potentialMatches, err
 }
