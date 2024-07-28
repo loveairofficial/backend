@@ -905,7 +905,7 @@ func (re *Rest) GetPotentialMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(preference)
+	// fmt.Println(preference)
 
 	if preference.GeoCircle.Unit == "mi" {
 		preference.GeoCircle.Radius = MilesToMeters(preference.GeoCircle.Radius)
@@ -913,7 +913,7 @@ func (re *Rest) GetPotentialMatches(w http.ResponseWriter, r *http.Request) {
 		preference.GeoCircle.Radius = KilometersToMeters(preference.GeoCircle.Radius)
 	}
 
-	fmt.Println(preference.GeoCircle.Radius)
+	// fmt.Println(preference.GeoCircle.Radius)
 
 	//use the preference to query neo4j for potential matches
 	pms, err := re.mbase.GetPotentialMatches(id, preference)
@@ -1109,8 +1109,6 @@ func (re *Rest) GetChats(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fmt.Println("----------------------------HydratedChats", HydratedChats)
-
 	re.writeJSON(w, Response{
 		Status:     "200",
 		StatusCode: http.StatusOK,
@@ -1245,7 +1243,7 @@ func (re *Rest) UpdateNotification(w http.ResponseWriter, r *http.Request) {
 	}
 
 	claim := &Claims{}
-	_, err = jwt.ParseWithClaims(tk, claim, func(token *jwt.Token) (interface{}, error) {
+	_, _ = jwt.ParseWithClaims(tk, claim, func(token *jwt.Token) (interface{}, error) {
 		return []byte(re.secret), nil
 	})
 

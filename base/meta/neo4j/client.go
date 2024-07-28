@@ -278,8 +278,6 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 	session := neo.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)
 
-	fmt.Println(id, pref)
-
 	param := map[string]interface{}{
 		"id":            id,
 		"rel_int":       pref.RelationshipIntention,
@@ -293,51 +291,22 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		"presence":      pref.Presence,
 	}
 
-	// Define the query to retrieve the user
-	// MATCH (on:USER{is_active: true, is_paused: false, presence: $presence})
-	//Todo: presence, boostfactor, (recommendation based on those with like matches as you)
-	// query := `
-	// MATCH (n:USER{id: $id})
-	// MATCH (on:USER{is_active: true, is_paused: false})
-	// WHERE on.id <> n.id
-	// AND NOT (n)-[:MATCH|PASS|UNMATCH]->(on)
-	// AND point.distance(on.geo_loc, point({latitude: $latitude, longitude: $longitude})) <= $radius
-	// AND on.rel_int IN $rel_int
-	// AND on.gender IN $interested_in
-	// AND on.age >= $age_min AND on.age <= $age_max
-	// OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
-	// WITH on, COLLECT(i.name) AS mutualInterests
-	// RETURN on.id AS id, on.presence AS presence, mutualInterests
-	// LIMIT 5
-	// `
-
-	// query := `
-	// 	MATCH (n:USER{id: $id})
-	// 	MATCH (on:USER{is_active: true, is_paused: false})
-	// 	WHERE on.id <> n.id
-	// 	AND NOT (n)-[:MATCH|PASS|UNMATCH|REQUESTED_TO_MEET]-(on)
-	// 	AND point.distance(on.geo_loc, point({latitude: $latitude, longitude: $longitude})) <= $radius
-	// 	AND on.rel_int IN $rel_int
-	// 	AND on.gender IN $interested_in
-	// 	AND on.age >= $age_min AND on.age <= $age_max
-	// 	OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
-	// 	WITH n, on, COLLECT(i.name) AS mutualInterests
-	// 	OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
-	// 	WHERE NOT (n)-[:INTERESTED_IN]->(oi)
-	// 	WITH on, mutualInterests, COLLECT(oi.name) AS exclusiveInterests
-	// 	RETURN on.id AS id, on.presence AS presence, mutualInterests, exclusiveInterests
-	// 	LIMIT 5
-	// 	`
+	//Todo: (smart recom)
 
 	baseQuery := `
-    WITH date() AS currentDate
     MATCH (n:USER{id: $id})
     MATCH (on:USER{is_active: true, is_paused: false, is_suppressed: false})
     WHERE on.id <> n.id
     AND NOT (n)-[:MATCH|PASS|UNMATCH|REQUESTED_TO_MEET]-(on)
     AND on.rel_int IN $rel_int
-    WITH on, currentDate, duration.inDays(on.dob, currentDate).days / 365.25 AS age
-    WHERE age >= $age_min AND age <= $age_max`
+
+	WITH n, on, date() AS currentDate
+    WITH n, on, currentDate, duration.inDays(on.dob, currentDate).days / 365.25 AS age
+    WHERE age >= $age_min AND age <= $age_max
+	`
+	// WITH date() AS currentDate
+	// WITH on, currentDate, duration.inDays(on.dob, currentDate).days / 365.25 AS age
+	// WHERE age >= $age_min AND age <= $age_max
 
 	// Initialize conditionals
 	conditions := []string{}
@@ -370,14 +339,15 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 	conditionString := strings.Join(conditions, "\n")
 
 	// Combine base query with conditions
-	completeQuery := fmt.Sprintf(`
+	completeQuery := fmt.Sprintf(
+		`
 		%s
 		%s
 		OPTIONAL MATCH (n)-[:INTERESTED_IN]->(i:INTEREST)<-[:INTERESTED_IN]-(on)
-		WITH n, on, COLLECT(DISTINCT i.name) AS mutualInterests, COUNT(DISTINCT i) AS mutualInterestsCount, coalesce(on.boost, 0) AS boostFactor
+		WITH n, on, COLLECT(DISTINCT i.name) AS mutualInterests, COUNT(DISTINCT i) AS mutualInterestsCount
 		OPTIONAL MATCH (on)-[:INTERESTED_IN]->(oi:INTEREST)
 		WHERE NOT (n)-[:INTERESTED_IN]->(oi)
-		WITH on, mutualInterests, mutualInterestsCount, boostFactor, COLLECT(DISTINCT oi.name) AS exclusiveInterests
+		WITH on, mutualInterests, mutualInterestsCount, coalesce(on.boost, 0) AS boostFactor, COLLECT(DISTINCT oi.name) AS exclusiveInterests
 		RETURN on.id AS id, on.last_seen AS lastSeen, on.presence AS presence, mutualInterests, exclusiveInterests
 		ORDER BY (mutualInterestsCount + boostFactor) DESC
 		LIMIT 5
@@ -397,16 +367,21 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 
 	var potentialMatches []models.User
 
+	// fmt.Println(result.Keys, len(result.Records))
+	// fmt.Println(result.Keys, result.Summary.Query())
+
 	// Loop through results and do something with them
 	for _, record := range result.Records {
 		var potentialMatch models.User
 
 		idI, _ := record.Get("id")
 		potentialMatch.ID, _ = idI.(string)
+		// fmt.Println(idI)
 
 		miI, _ := record.Get("mutualInterests")
 		mi, _ := miI.([]interface{})
 		potentialMatch.MutualInterest = ConvertInterfaceToStringSlice(mi)
+		// fmt.Println(miI)
 
 		lsI, _ := record.Get("lastSeen")
 		potentialMatch.LastSeen, _ = lsI.(time.Time)
@@ -415,6 +390,7 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
 		eiI, _ := record.Get("exclusiveInterests")
 		ei, _ := eiI.([]interface{})
 		potentialMatch.ExclusiveInterest = ConvertInterfaceToStringSlice(ei)
+		// fmt.Println(eiI)
 
 		potentialMatches = append(potentialMatches, potentialMatch)
 	}
