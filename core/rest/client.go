@@ -271,6 +271,10 @@ func (re *Rest) SignUp(w http.ResponseWriter, r *http.Request) {
 	usr.FreeTrialCountIssueTimestamp = time.Now().UTC()
 	usr.IsSuppressed = false
 
+	usr.IntroType = "video"
+	usr.IntroAudioUri = ""
+	usr.IntroVideoUri = ""
+
 	// Store credentials to database.
 	err = re.dbase.AddUser(usr)
 	if err != nil {

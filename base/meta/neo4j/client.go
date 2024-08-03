@@ -299,7 +299,6 @@ func (neo *Neo4j) GetPotentialMatches(id string, pref *models.Preference) ([]mod
     WHERE on.id <> n.id
     AND NOT (n)-[:MATCH|PASS|UNMATCH|REQUESTED_TO_MEET]-(on)
     AND on.rel_int IN $rel_int
-
 	WITH n, on, date() AS currentDate
     WITH n, on, currentDate, duration.inDays(on.dob, currentDate).days / 365.25 AS age
     WHERE age >= $age_min AND age <= $age_max

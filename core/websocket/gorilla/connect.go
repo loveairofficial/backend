@@ -14,7 +14,7 @@ func (s *Socket) Connect(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	// check if connected client are a certain number and if so drop all future connections.
+	// check if connected client are a certain number and if so drop connection.
 	if connCount := s.clients.Count(); connCount >= 100000 {
 		s.sLogger.Log.Errorln("Instance Full ------------------------------------------------")
 		return

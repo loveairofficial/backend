@@ -55,6 +55,9 @@ func (m *MongoDB) AddUser(usr *models.User) error {
 		"notification":                     usr.Notification,
 		"free_trial_count":                 usr.FreeTrialCount,
 		"free_trial_count_issue_timestamp": usr.FreeTrialCountIssueTimestamp,
+		"intro_type":                       usr.IntroType,
+		"intro_video_uri":                  usr.IntroVideoUri,
+		"intro_audio_uri":                  usr.IntroAudioUri,
 	}
 
 	database := m.client.Database(LADB)
