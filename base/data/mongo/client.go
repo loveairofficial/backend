@@ -175,6 +175,14 @@ func (m *MongoDB) DeleteDevice(email, did string) error {
 	return err
 }
 
+func (m *MongoDB) DeleteDeviceWithPushToken(email, pushTkn string) error {
+	filter := bson.M{"email": email}
+	update := bson.M{"$pull": bson.M{"devices": bson.M{"push_tkn": pushTkn}}}
+
+	err := m.Updater(UserCLX, filter, update)
+	return err
+}
+
 func (m *MongoDB) UpdatePreference(userID string, pref models.Preference, addr string, vicinity string, utcOffset int) error {
 	filter := bson.M{"id": userID}
 	update := bson.M{"$set": bson.M{

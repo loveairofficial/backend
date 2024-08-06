@@ -439,6 +439,12 @@ func (re *Rest) SignIn(w http.ResponseWriter, r *http.Request) {
 
 	device.DeviceID = did
 
+	// add if during logout the former saved device was not deleted and if its available delete it.
+	err = re.dbase.DeleteDeviceWithPushToken(creds.Email, device.PushTkn)
+	if err != nil {
+		re.sLogger.Log.Errorln(err)
+	}
+
 	// add new device to database.
 	err = re.dbase.AddNewDevice(device, creds.Email)
 	if err != nil {
