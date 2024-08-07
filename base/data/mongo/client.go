@@ -58,6 +58,7 @@ func (m *MongoDB) AddUser(usr *models.User) error {
 		"intro_type":                       usr.IntroType,
 		"intro_video_uri":                  usr.IntroVideoUri,
 		"intro_audio_uri":                  usr.IntroAudioUri,
+		"status":                           "pending-review",
 	}
 
 	database := m.client.Database(LADB)
