@@ -116,7 +116,7 @@ func init() {
 
 	email_api_key := os.Getenv("EMAIL_API_KEY")
 	if email_api_key == "" {
-		email_api_key = "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"
+		email_api_key = ""
 	}
 
 	// Init Email
